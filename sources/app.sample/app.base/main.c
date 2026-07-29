@@ -22,6 +22,13 @@
 #include <debug.h>
 #include <bsp.h>
 
+#include <gpio.h>
+#include <common.h>
+
+#if ( MCU_BSP_SUPPORT_APP_BUZZER == 1)
+    #include <buzzerTask.h>
+#endif
+
 #if (APLT_LINUX_SUPPORT_SPI_DEMO == 1)
     #include <spi_eccp.h>
 #endif
@@ -50,6 +57,7 @@
 
 #if ( MCU_BSP_SUPPORT_APP_FW_UPDATE == 1 )
     #include "fwupdate.h"
+
 #elif ( MCU_BSP_SUPPORT_APP_FW_UPDATE_ECCP == 1 )
     #include "fwupdate.h"
 #endif
@@ -62,12 +70,12 @@
 uint32                                  gALiveMsgOnOff;
 static uint32                           gALiveCount;
 
+
 /*
 ***************************************************************************************************
 *                                         FUNCTION PROTOTYPES
 ***************************************************************************************************
 */
-
 static void Main_StartTask
 (
     void *                              pArg
@@ -164,8 +172,13 @@ void cmain (void)
 *
 ***************************************************************************************************
 */
+
 static void Main_StartTask(void * pArg)
 {
+#if (MCU_BSP_SUPPORT_APP_BUZZER == 1)
+    SALRetCode_t buzzerRet;
+#endif
+
     (void)pArg;
     (void)SAL_OsInitFuncs();
 
@@ -174,12 +187,27 @@ static void Main_StartTask(void * pArg)
     /* Create application tasks */
     AppTaskCreate();
 
+#if (MCU_BSP_SUPPORT_APP_BUZZER == 1)
+    buzzerRet = BUZZER_Request(BUZZER_ON);
+
+    if (buzzerRet == SAL_RET_SUCCESS)
+    {
+        mcu_printf("\nBuzzer test requested\n");
+    }
+    else
+    {
+        mcu_printf("\nBuzzer test request failed: ret=%d\n",
+                   (sint32)buzzerRet);
+    }
+#endif
+
     while (1)
     {  /* Task body, always written as an infinite loop.       */
         DisplayAliveLog();
         //mcu_printf("\n MCU Idle !!!");
         (void)SAL_TaskSleep(5000);
     }
+    /*------------------------------------------------------------------------------------*/
 }
 
 static void AppTaskCreate(void)
@@ -217,6 +245,10 @@ static void AppTaskCreate(void)
 #if ( MCU_BSP_SUPPORT_APP_SPI_LED == 1)
     SPILED_CreateAppTask();
 #endif  // ( MCU_BSP_SUPPORT_APP_SPI_LED == 1 )
+
+#if ( MCU_BSP_SUPPORT_APP_BUZZER == 1 )
+    BUZZER_TaskCreate();
+#endif
 
 }
 

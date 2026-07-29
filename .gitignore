@@ -1,0 +1,20 @@
+# Local setup state
+/.eula_accepted
+
+# GCC build outputs
+/build/tcc70xx/gcc/output/
+/build/tcc70xx/gcc/tcc70xx-freertos-debug/
+
+# Flash images copied from the GCC build output
+/tools/fwdn_vcp/tcc70xx_pflash_boot*.rom
+
+# Patch and editor backup files
+*.orig
+*.rej
+*.swp
+*.swo
+*~
+
+# OS metadata
+.DS_Store
+Thumbs.db

@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+
+MCU_BSP_APP_SAMPLE_BUZZER_PATH := $(MCU_BSP_BUILD_CURDIR)
+
+# Flags
+COMMON_FLAGS += -DMCU_BSP_SUPPORT_APP_BUZZER=1
+
+# Paths
+VPATH += $(MCU_BSP_APP_SAMPLE_BUZZER_PATH)
+
+# Include
+INCLUDES += -I$(MCU_BSP_APP_SAMPLE_BUZZER_PATH)
+
+# Sources
+SRCS += buzzer.c
+SRCS += buzzerTask.c

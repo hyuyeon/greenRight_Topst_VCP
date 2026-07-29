@@ -58,6 +58,11 @@ ifeq ($(MCU_BSP_BUILD_FLAGS_APP_SPI_LED), 1)
     include $(MCU_BSP_APP_SAMPLE_PATH)/app.spi.led/rules.mk
 endif
 
+# Buzzer Application
+ifeq ($(MCU_BSP_BUILD_FLAGS_APP_BUZZER), 1)
+    include $(MCU_BSP_APP_SAMPLE_PATH)/app.buzzer/rules.mk
+endif
+
 # ADC Verification Application
 ifeq ($(MCU_BSP_BUILD_FLAGS_TEST_APP_ADC), 1)
     include $(MCU_BSP_APP_SAMPLE_PATH)/test.app.adc/rules.mk
