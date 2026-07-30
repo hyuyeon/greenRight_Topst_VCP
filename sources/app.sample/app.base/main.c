@@ -27,6 +27,9 @@
 #include "sensor_app.h"
 #include <gpio.h>
 #include <common.h>
+#include "common.h"
+
+EgoVehicle ego = {0};
 
 #if ( MCU_BSP_SUPPORT_APP_BUZZER == 1)
     #include <buzzerTask.h>

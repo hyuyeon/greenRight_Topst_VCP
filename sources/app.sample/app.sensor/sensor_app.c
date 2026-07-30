@@ -25,6 +25,7 @@
 #include "exti_button.h"
 #include "speed_sensor.h"
 #include "position.h"
+#include "common.h"
 
 #include <sal_internal.h>
 #include <app_cfg.h>
@@ -34,8 +35,8 @@
 #define SENSOR_UPDATE_PERIOD_MS   20U
 #define LED_BLINK_PERIOD_MS      500U
 
-
 State_t state = IDLE;
+
 
 static void Sensor_Task(void *pArg)
 {
