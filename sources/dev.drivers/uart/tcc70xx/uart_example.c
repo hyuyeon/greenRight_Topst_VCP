@@ -20,13 +20,7 @@
 
 void UART_Test(void)
 {
-    uint8 tx[] = "[UART] Hello from UART!\r\n";
-    uint8 rx[64] = {0};
-    sint32 ret;
-
-    GPIO_Config(UART_TX_PIN, GPIO_FUNC(UART_PORTCFG));
-    GPIO_Config(UART_RX_PIN, GPIO_FUNC(UART_PORTCFG));
-
+    uint8 tx[] = "[VCP DBG] UART0 ready\r\n";
     UartParam_t param = {
         .sCh = UART_TEST_CH,
         .sBaudrate = UART_BAUDRATE,
@@ -41,19 +35,10 @@ void UART_Test(void)
         .sFnCallback = NULL_PTR
     };
 
-    if (UART_Open(&param) != SAL_RET_SUCCESS) {
-        mcu_printf("[UART] Open failed\n");
-        return;
+    GPIO_Config(UART_TX_PIN, GPIO_FUNC(UART_PORTCFG));
+    GPIO_Config(UART_RX_PIN, GPIO_FUNC(UART_PORTCFG));
+
+    if (UART_Open(&param) == SAL_RET_SUCCESS) {
+        (void)UART_Write(UART_TEST_CH, tx, sizeof(tx) - 1UL);
     }
-
-    (void)UART_Write(UART_TEST_CH, tx, sizeof(tx));
-
-    ret = UART_Read(UART_TEST_CH, rx, sizeof(rx));
-    if (ret > 0) {
-        mcu_printf("[UART] Received: %s\n", rx);
-    } else {
-        mcu_printf("[UART] No data received\n");
-    }
-
-    UART_Close(UART_TEST_CH);
 }

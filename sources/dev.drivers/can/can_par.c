@@ -96,13 +96,13 @@ CANTxBuffer_t TxBufferInfoPar[ CAN_CONTROLLER_NUMBER ] =
 {
    /* Buffer count,  FIFO,QUEUE count, FIFO,QUEUE mode,          Buffer size,                Interrupt Config */
 #ifdef CAN_CHANNEL_0
-    { 16,            16,               CAN_TX_BUFFER_MODE_FIFO,  CAN_BUFFER_DATA_FIELD_64,   0xFFFFFFFFUL },
+    { 4,             12,               CAN_TX_BUFFER_MODE_FIFO,  CAN_BUFFER_DATA_FIELD_64,   0xFFFFFFFFUL },
 #endif
 #ifdef CAN_CHANNEL_1
-    { 16,            16,               CAN_TX_BUFFER_MODE_FIFO,  CAN_BUFFER_DATA_FIELD_64,   0xFFFFFFFFUL },
+    { 4,             12,               CAN_TX_BUFFER_MODE_FIFO,  CAN_BUFFER_DATA_FIELD_64,   0xFFFFFFFFUL },
 #endif
 #ifdef CAN_CHANNEL_2
-    { 16,            16,               CAN_TX_BUFFER_MODE_FIFO,  CAN_BUFFER_DATA_FIELD_64,   0xFFFFFFFFUL },
+    { 4,             12,               CAN_TX_BUFFER_MODE_FIFO,  CAN_BUFFER_DATA_FIELD_64,   0xFFFFFFFFUL },
 #endif
 };
 
@@ -126,13 +126,13 @@ CANRxBuffer_t RxBufferFIFO0InfoPar[ CAN_CONTROLLER_NUMBER ] =
 {
    /* Buffer count,  Data Field Size,            Operation mode */
 #ifdef CAN_CHANNEL_0
-    { 64,            CAN_BUFFER_DATA_FIELD_64,   CAN_RX_OP_OVERWRITE },
+    { 32,            CAN_BUFFER_DATA_FIELD_64,   CAN_RX_OP_BLOCKING },
 #endif
 #ifdef CAN_CHANNEL_1
-    { 64,            CAN_BUFFER_DATA_FIELD_64,   CAN_RX_OP_OVERWRITE },
+    { 32,            CAN_BUFFER_DATA_FIELD_64,   CAN_RX_OP_BLOCKING },
 #endif
 #ifdef CAN_CHANNEL_2
-    { 64,            CAN_BUFFER_DATA_FIELD_64,   CAN_RX_OP_OVERWRITE },
+    { 32,            CAN_BUFFER_DATA_FIELD_64,   CAN_RX_OP_BLOCKING },
 #endif
 };
 
@@ -141,13 +141,13 @@ CANRxBuffer_t RxBufferFIFO1InfoPar[ CAN_CONTROLLER_NUMBER ] =
 {
    /* Buffer count,  Data Field Size,            Operation mode */
 #ifdef CAN_CHANNEL_0
-    { 64,            CAN_BUFFER_DATA_FIELD_64,   CAN_RX_OP_OVERWRITE },
+    { 16,            CAN_BUFFER_DATA_FIELD_64,   CAN_RX_OP_BLOCKING },
 #endif
 #ifdef CAN_CHANNEL_1
-    { 64,            CAN_BUFFER_DATA_FIELD_64,   CAN_RX_OP_OVERWRITE },
+    { 16,            CAN_BUFFER_DATA_FIELD_64,   CAN_RX_OP_BLOCKING },
 #endif
 #ifdef CAN_CHANNEL_2
-    { 64,            CAN_BUFFER_DATA_FIELD_64,   CAN_RX_OP_OVERWRITE },
+    { 16,            CAN_BUFFER_DATA_FIELD_64,   CAN_RX_OP_BLOCKING },
 #endif
 };
 
@@ -161,36 +161,24 @@ CANRxBuffer_t RxBufferFIFO1InfoPar[ CAN_CONTROLLER_NUMBER ] =
 static CANIdFilterList_t StandardIDFilterPar_CH0[ CAN_STANDARD_ID_FILTER_NUMBER ] =
 {
    /* FilterType,            FilterElementConfiguration,     FilterID1,  FilterID2 */
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO0,         0x000,      0x100 },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO1,         0x101,      0x200 },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_PRY_N_RXFIFO0,   0x201,      0x300 },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_PRY_N_RXFIFO1,   0x301,      0x400 },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXBUFFER,        0x401,      0x0   },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_REJECT_ID,       0x402,      0x7FF },
+    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO0,         0x000,      0x7FF },
+
 };
 #endif
 #ifdef CAN_CHANNEL_1
 static CANIdFilterList_t StandardIDFilterPar_CH1[ CAN_STANDARD_ID_FILTER_NUMBER ] =
 {
    /* FilterType,            FilterElementConfiguration,     FilterID1,  FilterID2 */
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO0,         0x000,      0x100 },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO1,         0x101,      0x200 },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_PRY_N_RXFIFO0,   0x201,      0x300 },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_PRY_N_RXFIFO1,   0x301,      0x400 },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXBUFFER,        0x401,      0x0   },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_REJECT_ID,       0x402,      0x7FF },
+    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO0,         0x000,      0x7FF },
+
 };
 #endif
 #ifdef CAN_CHANNEL_2
 static CANIdFilterList_t StandardIDFilterPar_CH2[ CAN_STANDARD_ID_FILTER_NUMBER ] =
 {
    /* FilterType,            FilterElementConfiguration,     FilterID1,  FilterID2 */
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO0,         0x000,      0x100 },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO1,         0x101,      0x200 },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_PRY_N_RXFIFO0,   0x201,      0x300 },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_PRY_N_RXFIFO1,   0x301,      0x400 },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXBUFFER,        0x401,      0x0   },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_REJECT_ID,       0x402,      0x7FF },
+    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO0,         0x000,      0x7FF },
+
 };
 #endif
 
@@ -219,36 +207,24 @@ CANIdFilter_t StandardIDFilterPar =
 static CANIdFilterList_t ExtendedIDFilterPar_CH0[ CAN_EXTENDED_ID_FILTER_NUMBER ] =
 {
    /* FilterType,            FilterElementConfiguration,     FilterID1,  FilterID2 */
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO0,         0x0000,     0x1000     },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO1,         0x1001,     0x2000     },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_PRY_N_RXFIFO0,   0x2001,     0x3000     },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_PRY_N_RXFIFO1,   0x3001,     0x4000     },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXBUFFER,        0x4001,     0x0        },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_REJECT_ID,       0x4002,     0x1FFFFFFF },
+    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO0,         0x00000000, 0x1FFFFFFF },
+
 };
 #endif
 #ifdef CAN_CHANNEL_1
 static CANIdFilterList_t ExtendedIDFilterPar_CH1[ CAN_EXTENDED_ID_FILTER_NUMBER ] =
 {
    /* FilterType,            FilterElementConfiguration,     FilterID1,  FilterID2 */
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO0,         0x0000,     0x1000     },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO1,         0x1001,     0x2000     },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_PRY_N_RXFIFO0,   0x2001,     0x3000     },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_PRY_N_RXFIFO1,   0x3001,     0x4000     },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXBUFFER,        0x4001,     0x0        },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_REJECT_ID,       0x4002,     0x1FFFFFFF },
+    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO0,         0x00000000, 0x1FFFFFFF },
+
 };
 #endif
 #ifdef CAN_CHANNEL_2
 static CANIdFilterList_t ExtendedIDFilterPar_CH2[ CAN_EXTENDED_ID_FILTER_NUMBER ] =
 {
    /* FilterType,            FilterElementConfiguration,     FilterID1,  FilterID2 */
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO0,         0x0000,     0x1000     },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO1,         0x1001,     0x2000     },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_PRY_N_RXFIFO0,   0x2001,     0x3000     },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_PRY_N_RXFIFO1,   0x3001,     0x4000     },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXBUFFER,        0x4001,     0x0        },
-    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_REJECT_ID,       0x4002,     0x1FFFFFFF },
+    { CAN_FILTER_TYPE_RANGE, CAN_FILTER_CFG_RXFIFO0,         0x00000000, 0x1FFFFFFF },
+
 };
 #endif
 

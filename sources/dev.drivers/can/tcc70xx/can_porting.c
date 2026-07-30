@@ -523,7 +523,7 @@ boolean CAN_PortingGetStandardIDRemoteRejectEnable
 
     if( ucCh < CAN_CONTROLLER_NUMBER )
     {
-        ret = TRUE;
+        ret = FALSE;
     }
 
     return ret;
@@ -540,7 +540,7 @@ boolean CAN_PortingGetExtendedIDRemoteRejectEnable
 
     if( ucCh < CAN_CONTROLLER_NUMBER )
     {
-        ret = TRUE;
+        ret = FALSE;
     }
 
     return ret;

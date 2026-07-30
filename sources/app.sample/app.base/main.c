@@ -125,11 +125,15 @@ void cmain (void)
 
     BSP_PreInit(); /* Initialize basic BSP functions */
 
+    BSP_Init(); /* Initialize BSP functions */
+
+    /*
+     * Initialize CAN after the complete BSP/PMIO setup so BSP_Init() cannot
+     * overwrite the CAN pin mux or external-transceiver standby pins.
+     */
 #if ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
     (void)CAN_DemoInitialize();
 #endif  // ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
-
-    BSP_Init(); /* Initialize BSP functions */
 
     (void)SAL_GetVersion(&versionInfo);
     mcu_printf("\n===============================\n");
@@ -172,8 +176,7 @@ void cmain (void)
 *
 ***************************************************************************************************
 */
-
-static void Main_StartTask(void * pArg)
+static void Main_StartTask(void *pArg)
 {
 #if (MCU_BSP_SUPPORT_APP_BUZZER == 1)
     SALRetCode_t buzzerRet;
@@ -182,10 +185,8 @@ static void Main_StartTask(void * pArg)
     (void)pArg;
     (void)SAL_OsInitFuncs();
 
-    /* Service Init*/
 
-    /* Create application tasks */
-    AppTaskCreate();
+    AppTaskCreate();   /* CAN_DemoCreateApp() → CAN RX task 생성 */
 
 #if (MCU_BSP_SUPPORT_APP_BUZZER == 1)
     buzzerRet = BUZZER_Request(BUZZER_ON);

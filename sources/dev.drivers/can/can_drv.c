@@ -1700,6 +1700,13 @@ static void CAN_DrvProcessIRQ
 
     sIRStatus = psControllerInfo->cRegister->crInterruptRegister.rFReg;
 
+    /*
+     * Clear the interrupt snapshot before servicing it. If a new CAN frame
+     * arrives while the FIFO is being drained below, RF0N/RF1N is asserted
+     * again instead of being erased with the old interrupt snapshot.
+     */
+    psControllerInfo->cRegister->crInterruptRegister.rFReg = sIRStatus;
+
     // 29 : Access to Reserved Address
     if( sIRStatus.rfARA != 0UL )
     {
@@ -1904,7 +1911,7 @@ static void CAN_DrvProcessIRQ
         ( void ) CAN_MsgPutRxMessage( ucCh, CAN_RX_BUFFER_TYPE_FIFO0 );
     }
 
-    psControllerInfo->cRegister->crInterruptRegister.rFReg = sIRStatus;
+
 }
 
 static void CAN_DrvCallbackNotifyTxEvent

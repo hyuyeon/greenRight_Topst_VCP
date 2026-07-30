@@ -97,10 +97,10 @@ typedef enum CANCh
 #define CAN_STANDARD_ID_FILTER_NUMBER_MAX   (6UL)
 #define CAN_EXTENDED_ID_FILTER_NUMBER_MAX   (6UL)
 
-#define CAN_STANDARD_ID_FILTER_NUMBER   (6U)
-#define CAN_EXTENDED_ID_FILTER_NUMBER   (6U)
+#define CAN_STANDARD_ID_FILTER_NUMBER   (1U)
+#define CAN_EXTENDED_ID_FILTER_NUMBER   (1U)
 
-#define CAN_RX_FIFO_0_MAX               (16UL)
+#define CAN_RX_FIFO_0_MAX               (32UL)
 #define CAN_RX_FIFO_1_MAX               (16UL)
 #define CAN_RX_BUFFER_MAX               (16UL)
 #define CAN_TX_EVENT_FIFO_MAX           (16UL)

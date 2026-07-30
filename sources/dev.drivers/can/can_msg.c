@@ -626,9 +626,8 @@ CANErrorType_t CAN_MsgGetRxMessage
 
             if( CAN_RX_MSG_RING_BUFFER_MAX <= RxRingBufferManager[ ucCh ].rrbHeadIdx )
             {
+                /* Reaching the end is a normal ring-buffer wrap, not an error. */
                 RxRingBufferManager[ ucCh ].rrbHeadIdx = 0;
-
-                ret = CAN_ERROR_BAD_PARAM;
             }
         }
         else
