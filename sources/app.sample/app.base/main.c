@@ -21,7 +21,10 @@
 #include <app_cfg.h>
 #include <debug.h>
 #include <bsp.h>
-
+#include <i2c.h>
+#include "bno055_app.h" 
+#include "adxl345_app.h"
+#include "sensor_app.h"
 #include <gpio.h>
 #include <common.h>
 
@@ -183,7 +186,7 @@ static void Main_StartTask(void * pArg)
     (void)SAL_OsInitFuncs();
 
     /* Service Init*/
-
+    I2C_Init(); 
     /* Create application tasks */
     AppTaskCreate();
 
@@ -231,6 +234,10 @@ static void AppTaskCreate(void)
 #if ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
     CAN_DemoCreateApp();
 #endif  // ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
+
+#if (MCU_BSP_SUPPORT_APP_SENSOR == 1)
+    Sensor_AppCreate();
+#endif
 
 #if ( MCU_BSP_SUPPORT_APP_FW_UPDATE == 1 )
     CreateFWUDTask();

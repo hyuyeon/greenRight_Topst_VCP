@@ -246,6 +246,7 @@ typedef enum SALTaskPriority
     SAL_PRIO_IPC_CONTROL                = 3,  /**< IPC Control task                     */
     SAL_PRIO_SYSTEM_MON                 = 4,  /**< System Monitoring APP task           */
     SAL_PRIO_CAN_DEMO                   = 4,  /**< CAN DEMO APP task                    */
+    SAL_PRIO_BNO055_APP = 4,
     SAL_PRIO_AUDIO_TEST                 = 5,  /**< Audio Test APP task                  */
     SAL_PRIO_VSDR_MONITOR               = 5,  /**< Vehicle Signal DEMO APP task         */
     SAL_PRIO_SPILED_DEMO                = 6,  /**< SPILED Demo Task                     */
@@ -259,7 +260,7 @@ typedef enum SALTaskPriority
     SAL_PRIO_CONSOLE                    = 10, /**< Console task                         */
     SAL_PRIO_FWUD_APP                   = 10, /**< FWUD APP task                        */
     SAL_PRIO_LOWEST                     = 12, /**< APP TASK START task                  */
-
+    
 } SALTaskPriority_t;
 
 
