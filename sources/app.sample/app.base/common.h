@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 
-/* ?占쏀샇???占쏀깭. RED -> GREEN -> YELLOW -> RED ?占쎌쑝占??占쏀솚?占쎈땲?? */
 typedef enum {
     SIG_RED = 0,
     SIG_YELLOW,
@@ -67,7 +66,17 @@ typedef struct
     uint16_t timestamp;	 // 12bit
 } CAN_Header_t;
 
-/* maneuver 占?*/
+// uint8_t maneuver; //0: straight, 1: right turn, 2: unprotected left turn, 3: protected left turn
+// uint8_t pedFlag; ///* 00 None / 01 (As Decimal, 1) Exists / 10(As Decimal, 2) AI Error 
+// EgoVehicle ego;
+// CandidateVehicle candidateVehicle;
+// TrafficLight tl; //Displayed on LCD and used for decision making
+// QueueHandle_t dicisionQueue; //for task synchronization, task synch message queue
+// SemaphoreHandle_t turnJudgeSem; //judgement task wake up semaphore
+// SemaphoreHandle_t tlDisplaySem; //tlDisplay task wake up semaphore
+// QueueHandle_t buzzerQueue; //buzzer task wake up queue
+
+/* maneuver value definitions*/
 #define MANEUVER_STRAIGHT          0U
 #define MANEUVER_RIGHT_TURN        1U
 #define MANEUVER_LEFT_TURN_UNPROT  2U
