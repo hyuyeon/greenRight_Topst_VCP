@@ -23,7 +23,7 @@
 #include <bsp.h>
 #include <i2c.h>
 #include "bno055_app.h" 
-#include "adxl345_app.h"
+// #include "adxl345_app.h"
 #include "sensor_app.h"
 #include <gpio.h>
 #include <common.h>

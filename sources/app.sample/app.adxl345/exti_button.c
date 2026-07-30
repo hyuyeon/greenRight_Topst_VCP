@@ -20,8 +20,7 @@
  */
 
 #include "exti_button.h"
-#include "adxl345_app.h"
-
+#include "turn_state.h"
 #include <gpio.h>
 #include <bsp.h>
 #include <sal_api.h>
@@ -39,6 +38,9 @@ static volatile uint8 s_right_button_event = 0U;
 static volatile uint8 s_left_button_event  = 0U;
 
 static uint32 s_debounce_elapsed_ms = BUTTON_DEBOUNCE_MS;
+
+
+
 /*
  * 오른쪽 버튼 외부 인터럽트 콜백
  *

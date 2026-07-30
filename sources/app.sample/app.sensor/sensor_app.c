@@ -19,7 +19,7 @@
 #include "bno055.h"
 #include "bno055_app.h"
 #include "adxl345.h"
-// #include "adxl345_app.h"
+#include "turn_state.h"
 #include "i2c1_bus.h"
 #include "led.h"
 #include "exti_button.h"
@@ -33,14 +33,7 @@
 
 #define SENSOR_UPDATE_PERIOD_MS   20U
 #define LED_BLINK_PERIOD_MS      500U
-typedef enum
-{
-    IDLE = 0,
-    WAIT_STEER_RIGHT,
-    WAIT_RETURN_RIGHT,
-    WAIT_STEER_LEFT,
-    WAIT_RETURN_LEFT
-} State_t;
+
 
 State_t state = IDLE;
 
