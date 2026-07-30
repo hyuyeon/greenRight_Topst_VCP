@@ -1,0 +1,9 @@
+{
+    "makefile.makeDirectory": "${workspaceFolder}/build/tcc70xx/gcc",
+    "makefile.makefilePath": "${workspaceFolder}/build/tcc70xx/gcc/Makefile",
+    "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools",
+    "C_Cpp.default.defines": [
+        "MCU_BSP_SUPPORT_APP_BASE=1",
+        "MCU_BSP_SUPPORT_CAN_DEMO=1"
+    ]
+}
