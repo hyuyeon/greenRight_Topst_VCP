@@ -21,41 +21,44 @@ typedef struct {
 } EgoVehicle;
 
 typedef struct {
-	uint8_t type; //0?占쎈㈃ ?占쎈뒗 嫄곗엫 (candidate ?占쎌쓣 ?占쎈룄 ?占쎌쓬)
-	//1: ?占쎌감 ?占쏀쉶??vs ?占쏙옙? 吏곸쭊
-	//2: ?占쎌감 ?占쏀쉶??vs ?占쏙옙? 蹂댄샇 醫뚰쉶??
-	//4: ?占쎌감 鍮꾨낫??醫뚰쉶??vs ?占쏙옙? 吏곸쭊
-	//8: ?占쎌감 鍮꾨낫??醫뚰쉶??vs ?占쏙옙? ?占쏀쉶??
-	uint16_t cz_x; //candidate 李⑤웾怨쇱쓽 conflict zone??醫뚰몴
-  uint16_t cz_y; //candidate 李⑤웾怨쇱쓽 conflict zone??醫뚰몴
-  uint16_t x; //candidate 李⑤웾???占쎌옱 醫뚰몴
-  uint16_t y; //candidate 李⑤웾???占쎌옱 醫뚰몴
-  uint8_t speed; //candidate 李⑤웾???占쎌옱 spped
-	uint64_t timestamp_ms; //?占쎈젅?占쎌뿉 ?占쎄꺼???占쎈뒗 timstamp_ms 洹몌옙?占??占쎄린
-	uint64_t received_timestamp; //RTOS媛 諛쏆븯?????占?占쎌뒪?占쏀봽.. ?占쎈떒 ?占쎌뼱??
+	uint8_t type; //if its 0, no candidate vehicle.
+	//1: ego vehicle right turn vs opposite straight
+  //2: ego vehicle right turn vs opposite left turn[protected]
+  //4: ego vehicle left turn[unprotected] vs opposite straight
+  //8: ego vehicle left turn[unprotected] vs opposite right turn
+	uint16_t cz_x; //conflict zone x coordinate
+  uint16_t cz_y; //conflict zone y coordinate
+  uint16_t x; //candidate vehicle x coordinate
+  uint16_t y; //candidate vehicle y coordinate
+  uint8_t speed; //candidate vehicle speed
+	uint64_t timestamp_ms; //current timestamp in milliseconds on frame
+	uint64_t received_timestamp; //timestamp when the message received
 } CandidateVehicle;
 
 
-/* color: 00 red / 01 yellow / 10 green ??lcd.h??SignalColor?占?媛믪씠 ?占쎌씪?占쏙옙?占?
- * (SignalColor)tl.color 占?諛붾줈 罹먯뒪?占쏀빐???占쎌슜 媛??*/
 typedef struct {
     uint8_t  type; // msgId 0110의 tl_type_mask 원본값: 0=신호등 없음, 0x80=MQTT 통신 에러
-    uint8_t  color; //?먯감???좏샇?깆씠 ?놁쓣??怨?msgId 0110?먯꽌 tl_type_mask媛 0 ?대㈃ 255媛 ?ㅼ뼱媛?
-    uint8_t  time_left; //?먯감???좏샇?깆씠 ?놁쓣??怨?msgId 0110?먯꽌 tl_type_mask媛 0 ?대㈃ 0???ㅼ뼱媛?
-    uint16_t cz_x;  //?곷?李⑤웾?놁뼱???먯감媛 吏꾩엯?좊븣 蹂대뒗 conflict zone(??msgId 0110?먯꽌 tl_type_mask媛 0 ?대㈃ 0???ㅼ뼱媛?
-    uint16_t cz_y;  //?곷?李⑤웾?놁뼱???먯감媛 吏꾩엯?좊븣 蹂대뒗 conflict zone (??msgId 0110?먯꽌 tl_type_mask媛 0 ?대㈃ 0???ㅼ뼱媛?
+    uint8_t  color; //if 255, no traffic.
+    uint8_t  time_left; //no time_left could be possible
+    //(even if candidate vehicle is not in the conflict zone, 
+    //he traffic light may be in the conflict zone)
+    uint16_t cz_x;  //conflict zone x coordinate where the traffic light is located
+    uint16_t cz_y;  //conflict zone y coordinate where the traffic light is located
 } TrafficLight;
 
 
 typedef struct{
-  uint8_t turnState; //?듭떊 ?먮윭??255
-
-	uint8_t pedestrianFlag; /* 00 ?占쎌쓬 / 11 ?占쎌쓬 / 01 AI ?占쎌떇遺덌옙? (0???占쎈땲占?寃쎄퀬) */
-	uint8_t LStraightFlag; //?占쏀쉶????醫뚯륫 吏곸쭊李⑤웾
-	uint8_t OppLeftFlag;   //?占쏀쉶?????占???占쎈컲 醫뚰쉶??
-	uint8_t tlWarningFlag; //醫뚰쉶?占쎌떆 ?占쏀샇???占쎄컙 遺占?
-	uint8_t OppStraightFlag; //醫뚰쉶?????占??吏곸쭊
-  uint8_t OppRightFlag;    //醫뚰쉶?????占???占쏀쉶??
+  uint8_t turnState; //0: straight, 1: right turn, 2: left turn,255: mqtt comm fail
+  //on right turn situation
+	uint8_t pedestrianFlag; //0: no pedestrian, 1: pedestrian, 2 : AI error
+  //flags : 0 = false, 1 = true
+  //on right turn situation
+	uint8_t LStraightFlag; //is left side straight vehicle exist?
+	uint8_t OppLeftFlag;   //is opposite left turn vehicle exist?
+  //on left turn situation
+	uint8_t tlWarningFlag; //is there enough time to cross the intersection?
+	uint8_t OppStraightFlag; //is opposite straight vehicle exist?
+  uint8_t OppRightFlag;    //is opposite right turn vehicle exist?
 } Dicision;
 
 typedef struct
