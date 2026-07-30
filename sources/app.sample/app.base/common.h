@@ -65,7 +65,6 @@ typedef struct
 {
     uint8_t msg_id;      // 4bit
     uint16_t timestamp;	 // 12bit
-    uint8_t updateMask;  // 8bit
 } CAN_Header_t;
 
 /* maneuver 占?*/

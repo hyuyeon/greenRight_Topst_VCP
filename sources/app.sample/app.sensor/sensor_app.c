@@ -35,8 +35,199 @@
 #define SENSOR_UPDATE_PERIOD_MS   20U
 #define LED_BLINK_PERIOD_MS      500U
 
+#define EGO_TIMESTAMP_UNIT_MS     10U
+#define EGO_TIMESTAMP_MASK        0x0FFFU
+
 State_t state = IDLE;
 
+static uint16_t Sensor_ClampPosition(
+    int32_t value,
+    uint16_t max_value)
+{
+    if (value <= 0)
+    {
+        return 0U;
+    }
+
+    if (value >= (int32_t)max_value)
+    {
+        return max_value;
+    }
+
+    return (uint16_t)value;
+}
+
+
+/*
+ * m/s 단위의 센서 속도를 cm/s 정수로 변환한다.
+ *
+ * 예:
+ * 0.40 m/s -> 40 cm/s
+ * 0.67 m/s -> 67 cm/s
+ */
+static uint8_t Sensor_EncodeSpeedCmps(
+    float speed_mps)
+{
+    float speed_cmps;
+
+    speed_cmps = speed_mps * 100.0f;
+
+    if (speed_cmps <= 0.0f)
+    {
+        return 0U;
+    }
+
+    if (speed_cmps >= 255.0f)
+    {
+        return 255U;
+    }
+
+    /*
+     * 0.5를 더해 반올림한다.
+     */
+    return (uint8_t)(speed_cmps + 0.5f);
+}
+
+
+/*
+ * heading_x100을 정수 degree로 변환한다.
+ *
+ * 예:
+ * 12345 -> 123 degree
+ * 35980 -> 반올림 후 0 degree
+ *
+ * 9bit 필드지만 실제 저장값은 0~359 degree이다.
+ */
+static uint16_t Sensor_EncodeHeading(
+    int32_t heading_x100)
+{
+    int32_t normalized_x100;
+    int32_t heading_deg;
+
+    normalized_x100 =
+        heading_x100 % 36000;
+
+    if (normalized_x100 < 0)
+    {
+        normalized_x100 += 36000;
+    }
+
+    heading_deg =
+        (normalized_x100 + 50) / 100;
+
+    if (heading_deg >= 360)
+    {
+        heading_deg = 0;
+    }
+
+    return (uint16_t)heading_deg;
+}
+
+
+/*
+ * 내부 방향지시등 상태를 Protocol 값으로 변환한다.
+ *
+ * 0b00: OFF
+ * 0b01: RIGHT
+ * 0b10: LEFT
+ */
+static uint8_t Sensor_GetTurnSignal(void)
+{
+    switch (state)
+    {
+        case WAIT_STEER_RIGHT:
+        case WAIT_RETURN_RIGHT:
+        {
+            return 1U;
+        }
+
+        case WAIT_STEER_LEFT:
+        case WAIT_RETURN_LEFT:
+        {
+            return 2U;
+        }
+
+        case IDLE:
+        default:
+        {
+            return 0U;
+        }
+    }
+}
+
+
+/*
+ * 현재 센싱 시각을 12bit timestamp로 변환한다.
+ *
+ * SAL tick은 ms 기준으로 사용하고,
+ * Protocol timestamp의 1 LSB는 10ms로 정의한다.
+ */
+static uint16_t Sensor_GetTimestamp(void)
+{
+    uint32 tick_ms = 0U;
+
+    if (SAL_GetTickCount(&tick_ms) !=
+        SAL_RET_SUCCESS)
+    {
+        return 0U;
+    }
+
+    return (uint16_t)(
+        (tick_ms / EGO_TIMESTAMP_UNIT_MS) &
+        EGO_TIMESTAMP_MASK);
+}
+
+
+/*
+ * 이번 센서 주기의 최종 상태를
+ * 공유 전역변수 ego에 저장한다.
+ */
+static void Sensor_UpdateEgo(
+    float speed_mps,
+    int32_t heading_x100)
+{
+    EgoVehicle new_ego = {0};
+
+    /*
+     * CAN Payload 값 생성
+     */
+    new_ego.x =
+        Sensor_ClampPosition(
+            Position_GetXcm(),
+            1023U);
+
+    new_ego.y =
+        Sensor_ClampPosition(
+            Position_GetYcm(),
+            2047U);
+
+    new_ego.speed =
+        Sensor_EncodeSpeedCmps(
+            speed_mps);
+
+    new_ego.heading =
+        Sensor_EncodeHeading(
+            heading_x100);
+
+    new_ego.turn_signal =
+        Sensor_GetTurnSignal();
+
+    /*
+     * Payload에 포함된 상태의 센싱 시각
+     */
+    new_ego.timestamp =
+        Sensor_GetTimestamp();
+
+    /*
+     * 변환과 시간 조회가 모두 끝난 뒤
+     * 공유 전역변수 쓰기만 짧게 보호한다.
+     */
+    SAL_CoreCriticalEnter();
+
+    ego = new_ego;
+
+    SAL_CoreCriticalExit();
+}
 
 static void Sensor_Task(void *pArg)
 {
@@ -463,6 +654,13 @@ static void Sensor_Task(void *pArg)
             blink_on = 0U;
             blink_elapsed_ms = 0U;
         }
+        /*
+         * 이번 20ms 주기의 차량 상태를
+         * 공유 전역변수 ego에 저장한다.
+         */
+        Sensor_UpdateEgo(
+            speed_mps,
+            current_heading_x100);
 
         /*
          * 속도 및 누적 위치를 1초마다 출력
