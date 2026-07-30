@@ -21,9 +21,15 @@
 #include <app_cfg.h>
 #include <debug.h>
 #include <bsp.h>
-
+#include <i2c.h>
+#include "bno055_app.h" 
+// #include "adxl345_app.h"
+#include "sensor_app.h"
 #include <gpio.h>
 #include <common.h>
+#include "common.h"
+
+EgoVehicle ego = {0};
 
 #if ( MCU_BSP_SUPPORT_APP_BUZZER == 1)
     #include <buzzerTask.h>
@@ -185,8 +191,10 @@ static void Main_StartTask(void *pArg)
     (void)pArg;
     (void)SAL_OsInitFuncs();
 
-
-    AppTaskCreate();   /* CAN_DemoCreateApp() → CAN RX task 생성 */
+    /* Service Init*/
+    I2C_Init(); 
+    /* Create application tasks */
+    AppTaskCreate();
 
 #if (MCU_BSP_SUPPORT_APP_BUZZER == 1)
     buzzerRet = BUZZER_Request(BUZZER_ON);
@@ -232,6 +240,10 @@ static void AppTaskCreate(void)
 #if ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
     CAN_DemoCreateApp();
 #endif  // ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
+
+#if (MCU_BSP_SUPPORT_APP_SENSOR == 1)
+    Sensor_AppCreate();
+#endif
 
 #if ( MCU_BSP_SUPPORT_APP_FW_UPDATE == 1 )
     CreateFWUDTask();

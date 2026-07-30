@@ -1022,6 +1022,7 @@ SALRetCode_t I2C_Xfer
     else
     {
         i2c[ucCh].dState = I2C_STATE_RUNNING;
+
         (void)SAL_CoreCriticalExit();
         (void)I2C_BusyCheck(ucCh);
 

@@ -21,6 +21,31 @@ ifeq ($(MCU_BSP_BUILD_FLAGS_APP_CAN_DEMO), 1)
     include $(MCU_BSP_APP_SAMPLE_PATH)/app.can.demo/rules.mk
 endif
 
+# BNO055 IMU Application
+ifeq ($(MCU_BSP_BUILD_FLAGS_APP_BNO055), 1)
+    include $(MCU_BSP_APP_SAMPLE_PATH)/app.bno055/rules.mk
+endif
+
+# ADXL345 Application
+ifeq ($(MCU_BSP_BUILD_FLAGS_APP_ADXL345), 1)
+    include $(MCU_BSP_APP_SAMPLE_PATH)/app.adxl345/rules.mk
+endif
+
+# TCRT5000 Speed Sensor
+ifeq ($(MCU_BSP_BUILD_FLAGS_APP_TCRT5000), 1)
+    include $(MCU_BSP_APP_SAMPLE_PATH)/app.tcrt5000/rules.mk
+endif
+
+# SENSOR Application
+ifeq ($(MCU_BSP_BUILD_FLAGS_APP_SENSOR), 1)
+    include $(MCU_BSP_APP_SAMPLE_PATH)/app.sensor/rules.mk
+endif
+
+# POSITION Application
+ifeq ($(MCU_BSP_BUILD_FLAGS_APP_POSITION), 1)
+    include $(MCU_BSP_APP_SAMPLE_PATH)/app.position/rules.mk
+endif
+
 # Console Application
 ifeq ($(MCU_BSP_BUILD_FLAGS_APP_CONSOLE), 1)
     include $(MCU_BSP_APP_SAMPLE_PATH)/app.console/rules.mk

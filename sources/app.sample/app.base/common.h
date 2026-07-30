@@ -17,6 +17,7 @@ typedef struct {
     uint8_t speed;           // 8 bit
     uint16_t heading;        // 9 bit (0~511)
     uint16_t timestamp;      // 12bit
+    uint8_t turn_signal;
 } EgoVehicle;
 
 typedef struct {
@@ -85,5 +86,7 @@ typedef struct
 
 /* dicision queue??湲몄씠 overwrite 諛⑹떇?대씪 1*/
 #define DICISION_QUEUE_LEN 1
+
+extern EgoVehicle ego;
 
 #endif /* COMMON_H */
