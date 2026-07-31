@@ -441,6 +441,7 @@ static void CAN_DemoDrainRx
     uint32 uiBatchIndex;
 #if ( CAN_DEMO_FRAME_LOG_ENABLE == 1U )
     uint8 ucDataIndex;
+    uint16 usTimestamp;
 #endif
     CANMessage_t *psRxMsg;
 
@@ -468,15 +469,24 @@ static void CAN_DemoDrainRx
             CAN_DemoHandleRxMessage( psRxMsg );
 
 #if ( CAN_DEMO_FRAME_LOG_ENABLE == 1U )
+            usTimestamp = 0U;
+            if( psRxMsg->mDataLength >= 2U )
+            {
+                usTimestamp =
+                    ( uint16 )( ( ( uint16 )( psRxMsg->mData[0] & 0x0FU ) << 8U ) |
+                               ( uint16 )psRxMsg->mData[1] );
+            }
+
             if( gCanDemoLogLockCreated == TRUE )
             {
                 ( void )SAL_SemaphoreWait( gCanDemoLogLock, 0, SAL_OPT_BLOCKING );
             }
 
-            mcu_printf( "[CAN RX] CH%d SEQ:%d ID:0x%X DLC:%d DATA:",
+            mcu_printf( "[CAN RX] CH%d SEQ:%d ID:0x%X TS:%d DLC:%d DATA:",
                         ucCh,
                         ( unsigned long )gCanDemoRxCount[ucCh],
                         ( unsigned long )psRxMsg->mId,
+                        usTimestamp,
                         psRxMsg->mDataLength );
 
             for( ucDataIndex = 0U; ucDataIndex < psRxMsg->mDataLength; ucDataIndex++ )
@@ -735,11 +745,13 @@ static void CAN_DemoTxTask
                                                SAL_OPT_BLOCKING );
                 }
 
-                mcu_printf( "[CAN TX] CH%d SEQ:%d ID:0x%X MSG:%04d DATA:",
+                mcu_printf( "[CAN TX] CH%d SEQ:%d ID:0x%X MSG:%04d TS:%d DATA:",
                             CAN_DEMO_TX_CHANNEL,
                             ( unsigned long )gCanDemoTxRequestCount,
                             ( unsigned long )sTxMsg.mId,
-                            CAN_DEMO_MSG_EGO_STATUS );
+                            CAN_DEMO_MSG_EGO_STATUS,
+                            ( uint16 )( sEgoSnapshot.timestamp &
+                                       CAN_DEMO_TIMESTAMP_MASK ) );
                 for( ucDataIndex = 0U;
                      ucDataIndex < sTxMsg.mDataLength;
                      ucDataIndex++ )
