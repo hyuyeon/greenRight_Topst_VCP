@@ -29,6 +29,7 @@
 #include <common.h>
 #include "common.h"
 #include "lcd.h"
+#include "display_task.h"
 
 EgoVehicle ego = {0};
 
@@ -198,6 +199,8 @@ static void Main_StartTask(void *pArg)
     mcu_printf("[LCD] Init done\n");
 
     /* LCD 목데이터 화면 출력 */
+
+
     Dashboard_DrawStatic(
         DIR_RIGHT,
         WARN_STRAIGHT_VEHICLE | WARN_PEDESTRIAN,
@@ -206,6 +209,7 @@ static void Main_StartTask(void *pArg)
         1U
     );
     mcu_printf("[LCD] Mock display done\n");
+
     /* Create application tasks */
     AppTaskCreate();
 
@@ -257,6 +261,14 @@ static void AppTaskCreate(void)
 #if ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
     CAN_DemoCreateApp();
 #endif  // ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
+
+#if (MCU_BSP_SUPPORT_APP_SENSOR == 1)
+    Sensor_AppCreate();
+#endif
+
+#if (MCU_BSP_SUPPORT_APP_DISPLAY == 1)
+    Display_AppCreate();
+#endif
 
 #if ( MCU_BSP_SUPPORT_APP_FW_UPDATE == 1 )
     CreateFWUDTask();
