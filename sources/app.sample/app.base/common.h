@@ -30,6 +30,7 @@ typedef struct {
   uint16_t x; //candidate vehicle x coordinate
   uint16_t y; //candidate vehicle y coordinate
   uint8_t speed; //candidate vehicle speed
+  uint16_t heading; //candidate vehicle heading (9 bit)
 	uint64_t timestamp_ms; //current timestamp in milliseconds on frame
 	uint64_t received_timestamp; //timestamp when the message received
 } CandidateVehicle;
@@ -43,6 +44,8 @@ typedef struct {
     //he traffic light may be in the conflict zone)
     uint16_t cz_x;  //conflict zone x coordinate where the traffic light is located
     uint16_t cz_y;  //conflict zone y coordinate where the traffic light is located
+    uint16_t timestamp; //source timestamp from the CAN header (12 bit)
+    uint64_t received_timestamp; //local tick when the message was received
 } TrafficLight;
 
 
@@ -99,5 +102,8 @@ typedef struct
 #define DICISION_QUEUE_LEN 1
 
 extern EgoVehicle ego;
+extern CandidateVehicle candidateVehicle;
+extern TrafficLight tl;
+extern uint8_t maneuver;
 
 #endif /* COMMON_H */

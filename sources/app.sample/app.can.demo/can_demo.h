@@ -24,6 +24,7 @@
 
 #include <can_config.h>
 #include <can.h>
+#include <common.h>
 
 
 /**************************************************************************************************
@@ -78,10 +79,25 @@ void CAN_DemoCreateApp
     void
 );
 
-void CAN_DemoSetPeriodicTxData
+void CAN_DemoGetCandidateVehicle
 (
-    const uint8 *                       pucData,
-    uint8                               ucLength
+    CandidateVehicle *                  psCandidate
+);
+
+void CAN_DemoGetTrafficLight
+(
+    TrafficLight *                      psTrafficLight,
+    uint8 *                             pucManeuver
+);
+
+sint32 CAN_DemoWaitTurnJudge
+(
+    uint32                              uiTimeout
+);
+
+sint32 CAN_DemoWaitTrafficLightDisplay
+(
+    uint32                              uiTimeout
 );
 
 #endif  // ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )

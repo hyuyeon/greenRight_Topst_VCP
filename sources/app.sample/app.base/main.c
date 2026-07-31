@@ -237,13 +237,13 @@ static void AppTaskCreate(void)
     KEY_AppCreate();
 #endif  // ( MCU_BSP_SUPPORT_APP_KEY == 1 )
 
-#if ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
-    CAN_DemoCreateApp();
-#endif  // ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
-
 #if (MCU_BSP_SUPPORT_APP_SENSOR == 1)
     Sensor_AppCreate();
 #endif
+
+#if ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
+    CAN_DemoCreateApp();
+#endif  // ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
 
 #if ( MCU_BSP_SUPPORT_APP_FW_UPDATE == 1 )
     CreateFWUDTask();
