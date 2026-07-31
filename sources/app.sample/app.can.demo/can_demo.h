@@ -35,7 +35,7 @@
 #define CAN_DEMO_RX_BATCH_MAX           (32UL)
 #define CAN_DEMO_TX_TASK_STK_SIZE       (1024UL)
 #define CAN_DEMO_TX_CHANNEL             (0U)
-#define CAN_DEMO_TX_ID                  (0x200UL)
+#define CAN_DEMO_TX_ID                  (0x100UL)
 #define CAN_DEMO_TX_PERIOD_MS           (50UL)  /* Change to 10UL for a 10 ms period. */
 #define CAN_DEMO_STATUS_PERIOD_MS       (1000UL)
 #define CAN_DEMO_FRAME_LOG_ENABLE       (1U)
