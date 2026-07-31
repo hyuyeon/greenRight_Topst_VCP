@@ -17,3 +17,4 @@ INCLUDES += -I$(MCU_BSP_APP_DISPLAY_PATH)
 
 # Sources
 SRCS += lcd.c
+SRCS += display_task.c
