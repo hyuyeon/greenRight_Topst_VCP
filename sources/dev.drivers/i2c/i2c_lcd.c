@@ -15,7 +15,7 @@
 
 
 #include <i2c.h>
-#include <lcd.h>
+#include "lcd.h"
 
 void lcd_send(uint8 mode, uint8 data) {
     uint8 high = data & 0xF0;

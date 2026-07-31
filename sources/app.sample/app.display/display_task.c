@@ -29,11 +29,7 @@ static QueueHandle_t gDicisionQueue;
 
 static uint8_t gDisplayCreated;
 
-/*
- * 기존 TurnJudgeTask에서 extern TrafficLight tl로 참조할 수 있도록
- * 전역 객체로 유지한다.
- */
-TrafficLight tl = {0};
+/* TrafficLight tl is defined by the CAN demo and declared in common.h. */
 
 /* -------------------------------------------------------------------------- */
 /* Internal functions                                                         */
