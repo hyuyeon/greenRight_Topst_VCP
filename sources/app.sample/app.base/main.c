@@ -28,6 +28,7 @@
 #include <gpio.h>
 #include <common.h>
 #include "common.h"
+#include "lcd.h"
 
 EgoVehicle ego = {0};
 
@@ -190,6 +191,18 @@ static void Main_StartTask(void * pArg)
 
     /* Service Init*/
     I2C_Init(); 
+    ST7735S_Init();
+    mcu_printf("[LCD] Init done\n");
+
+    /* LCD 목데이터 화면 출력 */
+    Dashboard_DrawStatic(
+        DIR_RIGHT,
+        WARN_STRAIGHT_VEHICLE | WARN_PEDESTRIAN,
+        SIG_GREEN,
+        15U,
+        1U
+    );
+    mcu_printf("[LCD] Mock display done\n");
     /* Create application tasks */
     AppTaskCreate();
 
@@ -259,7 +272,11 @@ static void AppTaskCreate(void)
 #if ( MCU_BSP_SUPPORT_APP_BUZZER == 1 )
     BUZZER_TaskCreate();
 #endif
-
+while (1)
+    {
+        DisplayAliveLog();
+        (void)SAL_TaskSleep(5000UL);
+    }
 }
 
 static void DisplayAliveLog(void)
