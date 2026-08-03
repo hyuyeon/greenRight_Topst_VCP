@@ -177,28 +177,6 @@ static uint8_t TurnJudge_GetCandidateTurnLeft(
     return 0U;
 }
 
-/* -------------------------------------------------------------------------- */
-/* Candidate maneuver helper                                                  */
-/* -------------------------------------------------------------------------- */
-
-static uint8_t TurnJudge_GetCandidateTurnLeft(
-    uint8_t candidateType
-)
-{
-    /*
-     * 후보 차량이 좌회전 중인 경우만 turn_left = 1로 취급한다.
-     * (CAND_RT_OPP_LEFT: 자차 우회전 vs 대향 보호좌회전 후보)
-     * 그 외(직진, 우회전 후보)는 turn_left = 0으로 두면
-     * calculate_TTC 내부에서 heading이 충돌구역을 향할 때
-     * 자연스럽게 직선거리로 계산된다.
-     */
-    if ((candidateType & CAND_RT_OPP_LEFT) != 0U)
-    {
-        return 1U;
-    }
-
-    return 0U;
-}
 
 /* -------------------------------------------------------------------------- */
 /* Right-turn judgement                                                       */
