@@ -24,4 +24,4 @@ INCLUDES += -I$(MCU_BSP_DEV_DRIVERS_I2C_PATH)/$(MCU_BSP_CHIPSET_FAMILY_NAME)
 # Sources
 SRCS += i2c.c
 SRCS += i2c_reg.c
-SRCS += lcd.c
+

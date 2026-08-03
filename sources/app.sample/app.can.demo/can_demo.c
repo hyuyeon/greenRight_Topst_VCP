@@ -26,9 +26,8 @@
 #define CAN_DEMO_MSG_CANDIDATE_STATUS       (0x5U)
 #define CAN_DEMO_MSG_TRAFFIC_LIGHT          (0x6U)
 
-CandidateVehicle candidateVehicle = { 0 };
-TrafficLight tl = { 0 };
-uint8_t maneuver = MANEUVER_STRAIGHT;
+
+
 
 static volatile uint8 gCanDemoRxEnabled;
 static volatile uint8 gCanDemoTxEnabled;

@@ -32,6 +32,9 @@
 #include "display_task.h"
 
 EgoVehicle ego = {0};
+CandidateVehicle candidateVehicle = {0};
+TrafficLight tl = {0};
+uint8_t maneuver = MANEUVER_STRAIGHT;
 
 #if ( MCU_BSP_SUPPORT_APP_BUZZER == 1)
     #include <buzzerTask.h>
@@ -261,10 +264,6 @@ static void AppTaskCreate(void)
 #if ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
     CAN_DemoCreateApp();
 #endif  // ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
-
-#if (MCU_BSP_SUPPORT_APP_SENSOR == 1)
-    Sensor_AppCreate();
-#endif
 
 #if (MCU_BSP_SUPPORT_APP_DISPLAY == 1)
     Display_AppCreate();
