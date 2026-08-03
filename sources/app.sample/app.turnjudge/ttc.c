@@ -4,21 +4,18 @@
 #include "ttc.h"
 
 /*
- * 거리 단위 변환
- * cm -> m
+ * 거리 단위: cm (좌표계와 동일하게 사용, 별도 m 변환 없음)
  */
-#define TTC_CM_TO_M                    (0.01)
 
 /*
- * 속도 단위 변환
- * m/min -> m/s
+ * speed 필드는 이미 cm/s 단위로 들어온다.
+ * 별도의 단위 변환 없이 최소 속도(크리핑) 클램프만 적용한다.
  */
-#define TTC_MIN_TO_SEC                 (60.0)
 
 /*
- * 부동소수점 속도 0 비교용
+ * 부동소수점 속도 0 비교용 (cm/s 기준)
  */
-#define TTC_SPEED_EPS_M_PER_SEC        (1.0e-6)
+#define TTC_SPEED_EPS_CM_PER_SEC       (1.0e-4)
 
 /*
  * 충돌구역 도착 판정 허용거리
@@ -37,12 +34,8 @@
 /* Internal functions                                                         */
 /* -------------------------------------------------------------------------- */
 
-static double TTC_SpeedMPerMinToMPerSec(
-    uint8_t speedMPerMin
-);
-
-static double TTC_DistanceCmToM(
-    double distanceCm
+static double TTC_ApplyCreepFloorCmPerSec(
+    uint8_t speedCmPerSec
 );
 
 static double TTC_ComputeArcDistanceByHeading(
@@ -72,30 +65,32 @@ double get_distance(
     return sqrt((dx * dx) + (dy * dy));
 }
 
-double calculate_Ego_TTC(
-    EgoVehicle egoVehicle,
+double calculate_TTC(
+    uint16_t x,
+    uint16_t y,
+    uint16_t heading,
+    uint8_t speed,
     uint16_t cz_x,
     uint16_t cz_y,
     uint8_t turn_left
 )
 {
-    Point egoPosition;
+    Point position;
     Point conflictZone;
 
-    double speedMps;
+    double speedCmps;
     double headingDegree;
     double distanceCm;
-    double distanceM;
 
-    speedMps = TTC_SpeedMPerMinToMPerSec(egoVehicle.speed);
+    speedCmps = TTC_ApplyCreepFloorCmPerSec(speed);
 
-    if (speedMps < TTC_SPEED_EPS_M_PER_SEC)
+    if (speedCmps < TTC_SPEED_EPS_CM_PER_SEC)
     {
         return TTC_SAFE;
     }
 
-    egoPosition.x = (double)egoVehicle.x;
-    egoPosition.y = (double)egoVehicle.y;
+    position.x = (double)x;
+    position.y = (double)y;
 
     conflictZone.x = (double)cz_x;
     conflictZone.y = (double)cz_y;
@@ -105,11 +100,13 @@ double calculate_Ego_TTC(
      * 0도   = +y 방향
      * 90도  = +x 방향
      * 시계 방향으로 증가
+     *
+     * 자차, 후보 차량 모두 동일한 규칙을 사용한다.
      */
-    headingDegree = (double)egoVehicle.heading;
+    headingDegree = (double)heading;
 
     distanceCm = TTC_ComputeArcDistanceByHeading(
-        egoPosition,
+        position,
         headingDegree,
         turn_left,
         conflictZone
@@ -120,86 +117,39 @@ double calculate_Ego_TTC(
         return 0.0;
     }
 
-    distanceM = TTC_DistanceCmToM(distanceCm);
-
-    return distanceM / speedMps;
-}
-
-double calculate_Cand_TTC(
-    CandidateVehicle candidate
-)
-{
-    Point candidatePosition;
-    Point conflictZone;
-
-    double speedMps;
-    double distanceCm;
-    double distanceM;
-
-    speedMps = TTC_SpeedMPerMinToMPerSec(candidate.speed);
-
-    if (speedMps < TTC_SPEED_EPS_M_PER_SEC)
-    {
-        return TTC_SAFE;
-    }
-
-    candidatePosition.x = (double)candidate.x;
-    candidatePosition.y = (double)candidate.y;
-
-    conflictZone.x = (double)candidate.cz_x;
-    conflictZone.y = (double)candidate.cz_y;
-
     /*
-     * 현재 후보 차량은 충돌구역까지 직진한다고 가정한다.
+     * cm / (cm/s) = s
      */
-    distanceCm = get_distance(
-        candidatePosition.x,
-        candidatePosition.y,
-        conflictZone.x,
-        conflictZone.y
-    );
-
-    if (distanceCm <= TTC_CZ_ARRIVED_DIST_CM)
-    {
-        return 0.0;
-    }
-
-    distanceM = TTC_DistanceCmToM(distanceCm);
-
-    return distanceM / speedMps;
+    return distanceCm / speedCmps;
 }
 
 /* -------------------------------------------------------------------------- */
 /* Internal functions                                                         */
 /* -------------------------------------------------------------------------- */
 
-static double TTC_SpeedMPerMinToMPerSec(
-    uint8_t speedMPerMin
+static double TTC_ApplyCreepFloorCmPerSec(
+    uint8_t speedCmPerSec
 )
 {
-    uint8_t effectiveSpeedMPerMin;
+    uint8_t effectiveSpeedCmPerSec;
 
-    effectiveSpeedMPerMin = speedMPerMin;
+    effectiveSpeedCmPerSec = speedCmPerSec;
 
     /*
      * 저속 또는 정지 상태에서도 계산용 최소 속도를 적용한다.
-     * 기존 1차 프로젝트 동작을 그대로 유지한 부분이다.
+     * 기존 1차 프로젝트에서 15 m/min으로 클램프하던 것을
+     * 동일한 물리적 속도(25 cm/s)로 환산해 유지한다.
      */
-    if (effectiveSpeedMPerMin <= TTC_CREEP_SPEED_M_PER_MIN)
+    if (effectiveSpeedCmPerSec <= TTC_CREEP_SPEED_CM_PER_SEC)
     {
-        effectiveSpeedMPerMin =
-            TTC_CREEP_SPEED_M_PER_MIN;
+        effectiveSpeedCmPerSec =
+            TTC_CREEP_SPEED_CM_PER_SEC;
     }
 
-    return ((double)effectiveSpeedMPerMin) /
-           TTC_MIN_TO_SEC;
-}
-
-static double TTC_DistanceCmToM(
-    double distanceCm
-)
-{
-    return distanceCm * TTC_CM_TO_M;
+    /*
+     * speed 필드는 이미 cm/s 단위이므로 추가 변환 없이 반환한다.
+     */
+    return (double)effectiveSpeedCmPerSec;
 }
 
 static double TTC_ComputeArcDistanceByHeading(
@@ -280,6 +230,9 @@ static double TTC_ComputeArcDistanceByHeading(
     /*
      * 지정한 회전 방향으로 원호가 만들어지지 않거나
      * 곡률 계산이 불안정한 경우 직선거리로 대체한다.
+     *
+     * 직진하는 차량(heading이 충돌구역 방향과 거의 일치하는 경우)도
+     * 이 분기를 통해 자연스럽게 직선거리로 계산된다.
      */
     if (dotProduct < TTC_DEGENERATE_LEN_EPS)
     {
@@ -287,7 +240,7 @@ static double TTC_ComputeArcDistanceByHeading(
     }
 
     /*
-     * 현재 heading을 접선으로 가지며 현재 위치와 충돌구역을
+     * 현재 heading을 접선으로 하며 현재 위치와 충돌구역을
      * 모두 지나는 원의 반지름.
      */
     radius =

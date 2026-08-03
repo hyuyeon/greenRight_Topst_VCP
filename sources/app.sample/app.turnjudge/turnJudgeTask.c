@@ -80,6 +80,10 @@ static uint8_t TurnJudge_HasWarning(
     const Dicision *decision
 );
 
+static uint8_t TurnJudge_GetCandidateTurnLeft(
+    uint8_t candidateType
+);
+
 static uint8_t JudgeRightTurnLeftStraight(
     const EgoVehicle *egoSnap,
     const CandidateVehicle *candidateSnap,
@@ -160,6 +164,29 @@ static void TurnJudge_GetSnapshots(
 }
 
 /* -------------------------------------------------------------------------- */
+/* Candidate maneuver helper                                                  */
+/* -------------------------------------------------------------------------- */
+
+static uint8_t TurnJudge_GetCandidateTurnLeft(
+    uint8_t candidateType
+)
+{
+    /*
+     * 후보 차량이 좌회전 중인 경우만 turn_left = 1로 취급한다.
+     * (CAND_RT_OPP_LEFT: 자차 우회전 vs 대향 보호좌회전 후보)
+     * 그 외(직진, 우회전 후보)는 turn_left = 0으로 두면
+     * calculate_TTC 내부에서 heading이 충돌구역을 향할 때
+     * 자연스럽게 직선거리로 계산된다.
+     */
+    if ((candidateType & CAND_RT_OPP_LEFT) != 0U)
+    {
+        return 1U;
+    }
+
+    return 0U;
+}
+
+/* -------------------------------------------------------------------------- */
 /* Right-turn judgement                                                       */
 /* -------------------------------------------------------------------------- */
 
@@ -198,8 +225,11 @@ static uint8_t JudgeRightTurnLeftStraight(
         return 0U;
     }
 
-    egoTtc = calculate_Ego_TTC(
-        *egoSnap,
+    egoTtc = calculate_TTC(
+        egoSnap->x,
+        egoSnap->y,
+        egoSnap->heading,
+        egoSnap->speed,
         trafficLightSnap->cz_x,
         trafficLightSnap->cz_y,
         0U
@@ -317,8 +347,11 @@ static uint8_t JudgeLeftTurnTrafficLight(
         return 0U;
     }
 
-    egoTtc = calculate_Ego_TTC(
-        *egoSnap,
+    egoTtc = calculate_TTC(
+        egoSnap->x,
+        egoSnap->y,
+        egoSnap->heading,
+        egoSnap->speed,
         trafficLightSnap->cz_x,
         trafficLightSnap->cz_y,
         1U
@@ -344,15 +377,38 @@ static uint8_t JudgeLeftTurnCandidate(
     double egoTtc;
     double candidateTtc;
     double ttcGap;
+    uint8_t candidateTurnLeft;
 
-    egoTtc = calculate_Ego_TTC(
-        *egoSnap,
+    egoTtc = calculate_TTC(
+        egoSnap->x,
+        egoSnap->y,
+        egoSnap->heading,
+        egoSnap->speed,
         candidateSnap->cz_x,
         candidateSnap->cz_y,
         1U
     );
 
-    candidateTtc = calculate_Cand_TTC(*candidateSnap);
+    /*
+     * 후보 차량도 자차와 동일하게 heading 기반 원호 거리로
+     * 계산한다. 좌회전 후보(CAND_RT_OPP_LEFT)는 turn_left = 1,
+     * 그 외(직진, 우회전)는 turn_left = 0으로 계산되며,
+     * 직진 후보는 heading이 충돌구역 방향과 거의 일치하므로
+     * 내부적으로 직선거리로 자연스럽게 수렴한다.
+     */
+    candidateTurnLeft = TurnJudge_GetCandidateTurnLeft(
+        candidateSnap->type
+    );
+
+    candidateTtc = calculate_TTC(
+        candidateSnap->x,
+        candidateSnap->y,
+        candidateSnap->heading,
+        candidateSnap->speed,
+        candidateSnap->cz_x,
+        candidateSnap->cz_y,
+        candidateTurnLeft
+    );
 
     ttcGap = fabs(egoTtc - candidateTtc);
 
