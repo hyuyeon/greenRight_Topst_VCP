@@ -46,9 +46,13 @@ ifeq ($(MCU_BSP_BUILD_FLAGS_APP_POSITION), 1)
     include $(MCU_BSP_APP_SAMPLE_PATH)/app.position/rules.mk
 endif
 
-# POSITION Application
+# DISPLAY Application
 ifeq ($(MCU_BSP_BUILD_FLAGS_APP_DISPLAY), 1)
     include $(MCU_BSP_APP_SAMPLE_PATH)/app.display/rules.mk
+endif
+
+ifeq ($(MCU_BSP_BUILD_FLAGS_APP_TURN_JUDGE), 1)
+    include $(MCU_BSP_APP_SAMPLE_PATH)/app.turnjudge/rules.mk
 endif
 
 # Console Application

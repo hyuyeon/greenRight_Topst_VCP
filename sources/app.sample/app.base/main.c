@@ -26,12 +26,17 @@
 // #include "adxl345_app.h"
 #include "sensor_app.h"
 #include <gpio.h>
-#include <common.h>
 #include "common.h"
 #include "lcd.h"
 #include "display_task.h"
+#include "turnJudgeTask.h"
 
 EgoVehicle ego = {0};
+CandidateVehicle candidateVehicle = {0};
+TrafficLight tl = {0};
+uint8_t maneuver = MANEUVER_STRAIGHT;
+
+volatile uint8_t pedFlag = 0U;
 
 #if ( MCU_BSP_SUPPORT_APP_BUZZER == 1)
     #include <buzzerTask.h>
@@ -262,12 +267,12 @@ static void AppTaskCreate(void)
     CAN_DemoCreateApp();
 #endif  // ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
 
-#if (MCU_BSP_SUPPORT_APP_SENSOR == 1)
-    Sensor_AppCreate();
-#endif
-
 #if (MCU_BSP_SUPPORT_APP_DISPLAY == 1)
     Display_AppCreate();
+#endif
+
+#if (MCU_BSP_SUPPORT_APP_TURN_JUDGE == 1)
+    TurnJudge_AppCreate();
 #endif
 
 #if ( MCU_BSP_SUPPORT_APP_FW_UPDATE == 1 )

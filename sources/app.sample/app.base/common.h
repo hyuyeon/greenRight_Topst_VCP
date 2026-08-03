@@ -105,5 +105,6 @@ extern EgoVehicle ego;
 extern CandidateVehicle candidateVehicle;
 extern TrafficLight tl;
 extern uint8_t maneuver;
+extern volatile uint8_t pedFlag;
 
 #endif /* COMMON_H */
