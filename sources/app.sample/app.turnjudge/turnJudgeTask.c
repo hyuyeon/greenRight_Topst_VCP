@@ -9,9 +9,12 @@
 #include <debug.h>
 
 #include "common.h"
-#include "can_demo.h"
 #include "display_task.h"
 #include "ttc.h"
+
+#if (MCU_BSP_SUPPORT_APP_BUZZER == 1)
+#include "buzzerTask.h"
+#endif
 
 /* -------------------------------------------------------------------------- */
 /* Configuration                                                              */
@@ -23,12 +26,6 @@
  */
 #define TURN_JUDGE_CRITICAL_GAP_SEC       (8.73)
 #define TURN_JUDGE_YELLOW_DURATION_SEC   (1.0)
-
-/*
- * Candidate 메시지가 없더라도 신호등 및 maneuver 변화가
- * 판단에 반영되도록 최대 100ms마다 다시 확인한다.
- */
-#define TURN_JUDGE_WAIT_TIMEOUT_MS        (100UL)
 
 /*
  * 기존 CMSIS 태스크의 stack_size는 512 * 4 bytes였다.
@@ -56,12 +53,15 @@ extern volatile uint8_t pedFlag;
 static uint32 gTurnJudgeTaskId;
 static uint32 gTurnJudgeTaskStack[TURN_JUDGE_TASK_STACK_SIZE];
 static uint8_t gTurnJudgeCreated;
+static uint32 gTurnJudgeSem;
+static uint8_t gTurnJudgeSemCreated;
 
 /* -------------------------------------------------------------------------- */
 /* Internal function declarations                                             */
 /* -------------------------------------------------------------------------- */
 
 static void TurnJudgeTask(void *pArg);
+static void TurnJudge_Wait(void);
 
 static void TurnJudge_GetSnapshots(
     EgoVehicle *egoSnap,
@@ -141,26 +141,40 @@ static void TurnJudge_GetSnapshots(
         return;
     }
 
-    /*
-     * Ego와 pedestrian은 센서 및 AI 모듈에서 갱신한다.
-     */
+    /* 판단에 사용되는 공유 상태를 동일한 시점의 값으로 복사한다. */
     (void)SAL_CoreCriticalEnter();
 
     *egoSnap = ego;
+    *candidateSnap = candidateVehicle;
+    *trafficLightSnap = tl;
+    *maneuverSnap = maneuver;
     *pedestrianSnap = pedFlag;
 
     (void)SAL_CoreCriticalExit();
+}
 
+
+/* -------------------------------------------------------------------------- */
+/* Candidate maneuver helper                                                  */
+/* -------------------------------------------------------------------------- */
+
+static uint8_t TurnJudge_GetCandidateTurnLeft(
+    uint8_t candidateType
+)
+{
     /*
-     * Candidate, TrafficLight, maneuver는 CAN 모듈의
-     * 스냅샷 API를 사용한다.
+     * 후보 차량이 좌회전 중인 경우만 turn_left = 1로 취급한다.
+     * (CAND_RT_OPP_LEFT: 자차 우회전 vs 대향 보호좌회전 후보)
+     * 그 외(직진, 우회전 후보)는 turn_left = 0으로 두면
+     * calculate_TTC 내부에서 heading이 충돌구역을 향할 때
+     * 자연스럽게 직선거리로 계산된다.
      */
-    CAN_DemoGetCandidateVehicle(candidateSnap);
+    if ((candidateType & CAND_RT_OPP_LEFT) != 0U)
+    {
+        return 1U;
+    }
 
-    CAN_DemoGetTrafficLight(
-        trafficLightSnap,
-        maneuverSnap
-    );
+    return 0U;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -519,32 +533,43 @@ static uint8_t TurnJudge_IsSameDecision(
     return 1U;
 }
 
-static uint8_t TurnJudge_HasWarning(
-    const Dicision *decision
-)
+static uint8_t DecisionBuzzerMask(const Dicision *decision)
 {
-    if (decision == NULL)
-    {
-        return 0U;
-    }
+    uint8_t mask = 0U;
 
-    if ((decision->turnState == 255U) ||
-        (decision->pedestrianFlag == 1U) ||
-        (decision->LStraightFlag != 0U) ||
-        (decision->OppLeftFlag != 0U) ||
-        (decision->tlWarningFlag != 0U) ||
-        (decision->OppStraightFlag != 0U) ||
-        (decision->OppRightFlag != 0U))
-    {
-        return 1U;
-    }
+    if (decision->pedestrianFlag == 1U) mask |= 0x01U;
+    if (decision->LStraightFlag != 0U)  mask |= 0x02U;
+    if (decision->OppLeftFlag != 0U)    mask |= 0x04U;
+    if (decision->tlWarningFlag != 0U)  mask |= 0x08U;
+    if (decision->OppStraightFlag != 0U) mask |= 0x10U;
+    if (decision->OppRightFlag != 0U)   mask |= 0x20U;
 
-    return 0U;
+    return mask;
 }
 
 /* -------------------------------------------------------------------------- */
 /* TurnJudge task                                                             */
 /* -------------------------------------------------------------------------- */
+
+static void TurnJudge_Wait(void)
+{
+    if (gTurnJudgeSemCreated != 0U)
+    {
+        (void)SAL_SemaphoreWait(
+            gTurnJudgeSem,
+            0L,
+            SAL_OPT_BLOCKING
+        );
+    }
+}
+
+void TurnJudge_Notify(void)
+{
+    if (gTurnJudgeSemCreated != 0U)
+    {
+        (void)SAL_SemaphoreRelease(gTurnJudgeSem);
+    }
+}
 
 static void TurnJudgeTask(void *pArg)
 {
@@ -574,19 +599,10 @@ static void TurnJudgeTask(void *pArg)
         uint8_t pedestrianSnapshot;
         uint8_t shouldPost;
         uint8_t postResult;
+        uint8_t isFirstDecision;
 
-        /*
-         * Candidate 수신 알림을 기다린다.
-         *
-         * timeout 후에도 판단하는 이유:
-         * - 신호등만 변경된 경우
-         * - pedestrianFlag만 변경된 경우
-         * - maneuver가 변경된 경우
-         * 를 놓치지 않기 위해서다.
-         */
-        (void)CAN_DemoWaitTurnJudge(
-            TURN_JUDGE_WAIT_TIMEOUT_MS
-        );
+        /* 최신 공유 상태를 다시 판단하라는 알림을 기다린다. */
+        TurnJudge_Wait();
 
         TurnJudge_GetSnapshots(
             &egoSnapshot,
@@ -605,7 +621,7 @@ static void TurnJudgeTask(void *pArg)
         shouldPost = 1U;
 
         /*
-         * CAN 통신 오류가 있으면 LCD 통신 오류 화면으로 전달.
+         * 통신 오류가 있으면 LCD 통신 오류 화면으로 전달.
          */
         if ((candidateSnapshot.type == CAND_COMM_ERROR) ||
             (trafficLightSnapshot.type == TL_COMM_ERROR))
@@ -674,32 +690,31 @@ static void TurnJudgeTask(void *pArg)
         /*
          * 이전 판단 결과와 달라졌을 때만 LCD Queue에 전달.
          */
-        if ((hasPreviousDecision == 0U) ||
+        isFirstDecision = (hasPreviousDecision == 0U) ? 1U : 0U;
+
+        if ((isFirstDecision != 0U) ||
             (TurnJudge_IsSameDecision(
                 &previousDecision,
                 &decision) == 0U))
         {
-            postResult =
-                Display_DicisionPost(&decision);
-
-#if (TURN_JUDGE_LOG_ENABLE == 1U)
-            mcu_printf(
-                "[JUDGE] post=%u man=%u "
-                "cand=0x%02X tl=(%u,%u) "
-                "warning=%u\n",
-                (unsigned)postResult,
-                (unsigned)maneuverSnapshot,
-                (unsigned)candidateSnapshot.type,
-                (unsigned)trafficLightSnapshot.color,
-                (unsigned)trafficLightSnapshot.time_left,
-                (unsigned)TurnJudge_HasWarning(&decision)
-            );
-#endif
+            postResult = Display_DicisionPost(&decision);
 
             if (postResult != 0U)
             {
                 previousDecision = decision;
                 hasPreviousDecision = 1U;
+
+#if (MCU_BSP_SUPPORT_APP_BUZZER == 1)
+                /* 최초 판단은 초기 상태로만 저장하고 부저를 울리지 않는다. */
+                if ((isFirstDecision == 0U) &&
+                    (DecisionBuzzerMask(&decision) != 0U))
+                {
+                    if (BUZZER_Request(BUZZER_ON) != SAL_RET_SUCCESS)
+                    {
+                        mcu_printf("[JUDGE] Buzzer request failed\n");
+                    }
+                }
+#endif
             }
         }
     }
@@ -716,6 +731,34 @@ void TurnJudge_AppCreate(void)
     if (gTurnJudgeCreated != 0U)
     {
         return;
+    }
+
+    if (gTurnJudgeSemCreated == 0U)
+    {
+        result = (SALRetCode_t)SAL_SemaphoreCreate(
+            &gTurnJudgeSem,
+            (const uint8 *)"Turn Judge",
+            1UL,
+            SAL_OPT_BLOCKING
+        );
+
+        if (result != SAL_RET_SUCCESS)
+        {
+            mcu_printf(
+                "[JUDGE] Semaphore create failed: %d\n",
+                (sint32)result
+            );
+            return;
+        }
+
+        gTurnJudgeSemCreated = 1U;
+
+        /* 생성 직후의 초기 토큰을 제거해 첫 알림까지 태스크를 재운다. */
+        (void)SAL_SemaphoreWait(
+            gTurnJudgeSem,
+            0L,
+            SAL_OPT_NON_BLOCKING
+        );
     }
 
     result = (SALRetCode_t)SAL_TaskCreate(

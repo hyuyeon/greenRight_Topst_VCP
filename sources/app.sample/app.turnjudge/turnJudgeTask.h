@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 void TurnJudge_AppCreate(void);
+void TurnJudge_Notify(void);
 
 #ifdef __cplusplus
 }
