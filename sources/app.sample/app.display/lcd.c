@@ -685,7 +685,7 @@ static const WarningInfo warning_table_error[] = {
 };
 #define WARNING_TABLE_ERROR_LEN (sizeof(warning_table_error) / sizeof(warning_table_error[0]))
 
-void Dashboard_DrawWarnings(TurnDirection dir, uint8_t mask, uint8_t pedFlag)
+void Dashboard_DrawWarnings(TurnDirection dir, uint8_t mask, uint8_t pedestrianFlag)
 {
     const WarningInfo *table;
     uint8_t table_len;
@@ -779,7 +779,7 @@ void Dashboard_DrawWarnings(TurnDirection dir, uint8_t mask, uint8_t pedFlag)
             status = active[i]->status;
             status_color = active[i]->status_color;
         }
-        else if (pedFlag == 2U)
+        else if (pedestrianFlag == 2U)
         {
             status = "AI N/A";   /* 2: 에러(AI 인식 불가) */
             status_color = COLOR_RED;
@@ -795,7 +795,7 @@ void Dashboard_DrawWarnings(TurnDirection dir, uint8_t mask, uint8_t pedFlag)
 }
 
 void Dashboard_DrawStatic(TurnDirection dir, uint8_t warnMask,
-                          SignalColor sig, uint8_t countdown, uint8_t pedFlag)
+                          SignalColor sig, uint8_t countdown, uint8_t pedestrianFlag)
 {
     ST7735S_FillScreen(COLOR_BLACK);
     ST7735S_FillRect(0U, 28U, (uint8_t)LCD_W, 1U, COLOR_DIVIDER);
@@ -806,5 +806,5 @@ void Dashboard_DrawStatic(TurnDirection dir, uint8_t warnMask,
     ST7735S_DrawString(58, 20, "SEC", 0x7BEF, 1U);
 
     Dashboard_DrawDirection(dir);
-    Dashboard_DrawWarnings(dir, warnMask, pedFlag);
+    Dashboard_DrawWarnings(dir, warnMask, pedestrianFlag);
 }
