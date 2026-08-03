@@ -79,22 +79,6 @@ void CAN_DemoCreateApp
     void
 );
 
-void CAN_DemoGetCandidateVehicle
-(
-    CandidateVehicle *                  psCandidate
-);
-
-void CAN_DemoGetTrafficLight
-(
-    TrafficLight *                      psTrafficLight,
-    uint8 *                             pucManeuver
-);
-
-sint32 CAN_DemoWaitTurnJudge
-(
-    uint32                              uiTimeout
-);
-
 sint32 CAN_DemoWaitTrafficLightDisplay
 (
     uint32                              uiTimeout
@@ -103,4 +87,3 @@ sint32 CAN_DemoWaitTrafficLightDisplay
 #endif  // ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
 
 #endif  // MCU_BSP_CAN_DEMO_HEADER
-

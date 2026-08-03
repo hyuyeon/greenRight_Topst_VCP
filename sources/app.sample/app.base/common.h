@@ -98,7 +98,7 @@ typedef struct
 #define TL_NONE                    0U     /* no referenced traffic light */
 #define TL_COMM_ERROR              0x80U  /* MQTT communication error: traffic light unavailable */
 
-/* dicision queue??湲몄씠 overwrite 諛⑹떇?대씪 1*/
+
 #define DICISION_QUEUE_LEN 1
 
 extern EgoVehicle ego;

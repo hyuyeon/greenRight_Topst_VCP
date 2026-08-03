@@ -263,17 +263,21 @@ static void AppTaskCreate(void)
     Sensor_AppCreate();
 #endif
 
-#if ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
-    CAN_DemoCreateApp();
-#endif  // ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
-
 #if (MCU_BSP_SUPPORT_APP_DISPLAY == 1)
     Display_AppCreate();
+#endif
+
+#if ( MCU_BSP_SUPPORT_APP_BUZZER == 1 )
+    BUZZER_TaskCreate();
 #endif
 
 #if (MCU_BSP_SUPPORT_APP_TURN_JUDGE == 1)
     TurnJudge_AppCreate();
 #endif
+
+#if ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
+    CAN_DemoCreateApp();
+#endif  // ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
 
 #if ( MCU_BSP_SUPPORT_APP_FW_UPDATE == 1 )
     CreateFWUDTask();
@@ -289,9 +293,6 @@ static void AppTaskCreate(void)
     SPILED_CreateAppTask();
 #endif  // ( MCU_BSP_SUPPORT_APP_SPI_LED == 1 )
 
-#if ( MCU_BSP_SUPPORT_APP_BUZZER == 1 )
-    BUZZER_TaskCreate();
-#endif
 while (1)
     {
         DisplayAliveLog();
@@ -397,4 +398,3 @@ static void DisplayOTPInfo(void)
 }
 
 #endif  // ( MCU_BSP_SUPPORT_APP_BASE == 1 )
-

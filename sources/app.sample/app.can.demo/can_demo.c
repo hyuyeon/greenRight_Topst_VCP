@@ -15,6 +15,7 @@
 #include "can_porting.h"
 #include "can_demo.h"
 #include "common.h"
+#include "turnJudgeTask.h"
 
 #define CAN_DEMO_FRAME_SIZE                 (8U)
 #define CAN_DEMO_MSG_ID_SHIFT               (60U)
@@ -35,8 +36,6 @@ static sint32 gCanDemoInitResult = -1;
 
 static uint32 gCanDemoRxEvent;
 static uint8 gCanDemoRxEventCreated;
-static uint32 gCanDemoTurnJudgeSem;
-static uint8 gCanDemoTurnJudgeSemCreated;
 static uint32 gCanDemoTlDisplaySem;
 static uint8 gCanDemoTlDisplaySemCreated;
 static uint32 gCanDemoLogLock;
@@ -155,17 +154,6 @@ static uint8 CAN_DemoIsTrafficLightTypeValid
     return ucValid;
 }
 
-static void CAN_DemoNotifyTurnJudge
-(
-    void
-)
-{
-    if( gCanDemoTurnJudgeSemCreated == TRUE )
-    {
-        ( void )SAL_SemaphoreRelease( gCanDemoTurnJudgeSem );
-    }
-}
-
 static void CAN_DemoNotifyTlDisplay
 (
     void
@@ -249,7 +237,7 @@ static uint8 CAN_DemoHandleCandidateStatus
     candidateVehicle = sNewCandidate;
     ( void )SAL_CoreCriticalExit();
 
-    CAN_DemoNotifyTurnJudge();
+    TurnJudge_Notify();
 
     return TRUE;
 }
@@ -308,7 +296,7 @@ static uint8 CAN_DemoHandleTrafficLight
           ( ucPreviousManeuver == MANEUVER_LEFT_TURN_UNPROT ) ) &&
         ( ucNewManeuver == MANEUVER_STRAIGHT ) )
     {
-        CAN_DemoNotifyTurnJudge();
+        TurnJudge_Notify();
     }
 
     return TRUE;
@@ -521,53 +509,6 @@ sint32 CAN_DemoInitialize
     return gCanDemoInitResult;
 }
 
-void CAN_DemoGetCandidateVehicle
-(
-    CandidateVehicle *                  psCandidate
-)
-{
-    if( psCandidate != NULL_PTR )
-    {
-        ( void )SAL_CoreCriticalEnter();
-        *psCandidate = candidateVehicle;
-        ( void )SAL_CoreCriticalExit();
-    }
-}
-
-void CAN_DemoGetTrafficLight
-(
-    TrafficLight *                      psTrafficLight,
-    uint8 *                             pucManeuver
-)
-{
-    if( ( psTrafficLight != NULL_PTR ) && ( pucManeuver != NULL_PTR ) )
-    {
-        ( void )SAL_CoreCriticalEnter();
-        *psTrafficLight = tl;
-        *pucManeuver = maneuver;
-        ( void )SAL_CoreCriticalExit();
-    }
-}
-
-sint32 CAN_DemoWaitTurnJudge
-(
-    uint32                              uiTimeout
-)
-{
-    sint32 iResult;
-
-    iResult = -1;
-
-    if( gCanDemoTurnJudgeSemCreated == TRUE )
-    {
-        iResult = ( sint32 )SAL_SemaphoreWait( gCanDemoTurnJudgeSem,
-                                               uiTimeout,
-                                               SAL_OPT_BLOCKING );
-    }
-
-    return iResult;
-}
-
 sint32 CAN_DemoWaitTrafficLightDisplay
 (
     uint32                              uiTimeout
@@ -625,7 +566,6 @@ void CAN_DemoCreateApp
     gCanDemoRxEnabled = TRUE;
     gCanDemoTxEnabled = TRUE;
     gCanDemoRxEventCreated = FALSE;
-    gCanDemoTurnJudgeSemCreated = FALSE;
     gCanDemoTlDisplaySemCreated = FALSE;
     gCanDemoLogLockCreated = FALSE;
 
@@ -644,17 +584,6 @@ void CAN_DemoCreateApp
                          0UL ) == SAL_RET_SUCCESS )
     {
         gCanDemoRxEventCreated = TRUE;
-    }
-
-    if( SAL_SemaphoreCreate( &gCanDemoTurnJudgeSem,
-                             ( const uint8 * )"CAN Turn Judge",
-                             1UL,
-                             SAL_OPT_BLOCKING ) == SAL_RET_SUCCESS )
-    {
-        gCanDemoTurnJudgeSemCreated = TRUE;
-        ( void )SAL_SemaphoreWait( gCanDemoTurnJudgeSem,
-                                   0UL,
-                                   SAL_OPT_NON_BLOCKING );
     }
 
     if( SAL_SemaphoreCreate( &gCanDemoTlDisplaySem,
