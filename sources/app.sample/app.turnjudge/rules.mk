@@ -6,4 +6,5 @@ VPATH += $(MCU_BSP_APP_TURN_JUDGE_PATH)
 INCLUDES += -I$(MCU_BSP_APP_TURN_JUDGE_PATH)
 
 SRCS += turnJudgeTask.c
+SRCS += turnJudgeLog.c
 SRCS += ttc.c

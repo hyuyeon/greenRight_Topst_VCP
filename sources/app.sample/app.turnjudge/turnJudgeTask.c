@@ -11,6 +11,7 @@
 #include "common.h"
 #include "display_task.h"
 #include "ttc.h"
+#include "turnJudgeLog.h"
 
 #if (MCU_BSP_SUPPORT_APP_BUZZER == 1)
 #include "buzzerTask.h"
@@ -33,9 +34,6 @@
  * VCP-G에서는 uint32 스택 배열을 사용한다.
  */
 #define TURN_JUDGE_TASK_STACK_SIZE        ACFG_TASK_MEDIUM_STK_SIZE
-
-#define TURN_JUDGE_LOG_ENABLE             (1U)
-
 
 /* -------------------------------------------------------------------------- */
 /* Task resources                                                             */
@@ -67,17 +65,21 @@ static uint8_t TurnJudge_IsSameDecision(
     const Dicision *right
 );
 
+static uint8_t DecisionBuzzerMask(
+    const Dicision *decision
+);
+
 static uint8_t TurnJudge_GetCandidateTurnLeft(
     uint8_t candidateType
 );
 
-static uint8_t JudgeRightTurnLeftStraight(
+static TurnJudgeResult JudgeRightTurnLeftStraight(
     const EgoVehicle *egoSnap,
     const CandidateVehicle *candidateSnap,
     const TrafficLight *trafficLightSnap
 );
 
-static uint8_t JudgeRightTurnOppLeft(
+static TurnJudgeResult JudgeRightTurnOppLeft(
     const EgoVehicle *egoSnap,
     const CandidateVehicle *candidateSnap,
     const TrafficLight *trafficLightSnap
@@ -88,24 +90,27 @@ static void BuildRightTurnDecision(
     uint8_t pedestrianFlag,
     const EgoVehicle *egoSnap,
     const CandidateVehicle *candidateSnap,
-    const TrafficLight *trafficLightSnap
+    const TrafficLight *trafficLightSnap,
+    TurnJudgeLogContext *logContext
 );
 
-static uint8_t JudgeLeftTurnTlTime(
+static TurnJudgeResult JudgeLeftTurnTlTime(
     const EgoVehicle *egoSnap,
     const TrafficLight *trafficLightSnap
 );
 
-static uint8_t JudgeLeftTurnCandidate(
+static TurnJudgeResult JudgeLeftTurnCandidate(
     const EgoVehicle *egoSnap,
-    const CandidateVehicle *candidateSnap
+    const CandidateVehicle *candidateSnap,
+    TurnJudgeCase judgeCase
 );
 
 static void BuildLeftTurnDecision(
     Dicision *decision,
     const EgoVehicle *egoSnap,
     const CandidateVehicle *candidateSnap,
-    const TrafficLight *trafficLightSnap
+    const TrafficLight *trafficLightSnap,
+    TurnJudgeLogContext *logContext
 );
 
 /* -------------------------------------------------------------------------- */
@@ -164,7 +169,6 @@ static uint8_t TurnJudge_GetCandidateTurnLeft(
 
     return 0U;
 }
-
 
 /* -------------------------------------------------------------------------- */
 /* Right-turn judgement                                                       */
@@ -242,16 +246,21 @@ static uint8_t JudgeRightTurnLeftStraightBackup(
     return 1U;
 }
 
-static uint8_t JudgeRightTurnLeftStraight(
+static TurnJudgeResult JudgeRightTurnLeftStraight(
     const EgoVehicle *egoSnap,
     const CandidateVehicle *candidateSnap,
     const TrafficLight *trafficLightSnap
 )
 {
+    TurnJudgeResult result;
     double egoTtc;
     double candidateTtc;
     double ttcGap;
     double passableTimeSec;
+
+    result = TurnJudgeLog_MakeResult(
+        TURN_JUDGE_CASE_RT_LEFT_STRAIGHT
+    );
 
     /*
      * 이 함수는 CAND_RT_LEFT_STRAIGHT candidate가 있을 때만 호출된다.
@@ -261,7 +270,8 @@ static uint8_t JudgeRightTurnLeftStraight(
     if ((trafficLightSnap->cz_x == 0U) &&
         (trafficLightSnap->cz_y == 0U))
     {
-        return 0U;
+        result.reason = TURN_JUDGE_REASON_CZ_PASSED;
+        return result;
     }
 
     /*
@@ -294,7 +304,10 @@ static uint8_t JudgeRightTurnLeftStraight(
 
             if (passableTimeSec > egoTtc)
             {
-                return 0U;
+                result.egoTtcSec = egoTtc;
+                result.referenceSec = passableTimeSec;
+                result.reason = TURN_JUDGE_REASON_SIGNAL_PASSABLE;
+                return result;
             }
         }
     }
@@ -327,24 +340,38 @@ static uint8_t JudgeRightTurnLeftStraight(
 
     ttcGap = fabs(candidateTtc - egoTtc);
 
+    result.egoTtcSec = egoTtc;
+    result.candidateTtcSec = candidateTtc;
+    result.ttcGapSec = ttcGap;
+    result.referenceSec = RIGHT_TURN_JUDGE_CRITICAL_GAP_SEC;
+
     if (ttcGap > RIGHT_TURN_JUDGE_CRITICAL_GAP_SEC)
     {
-        return 0U;
+        result.reason = TURN_JUDGE_REASON_TTC_GAP_SAFE;
+        return result;
     }
 
-    return 1U;
+    result.warning = 1U;
+    result.reason = TURN_JUDGE_REASON_TTC_GAP_WARNING;
+
+    return result;
 }
 
-static uint8_t JudgeRightTurnOppLeft(
+static TurnJudgeResult JudgeRightTurnOppLeft(
     const EgoVehicle *egoSnap,
     const CandidateVehicle *candidateSnap,
     const TrafficLight *trafficLightSnap
 )
 {
+    TurnJudgeResult result;
     double egoTtc;
     double candidateTtc;
     double ttcGap;
     double passableTimeSec;
+
+    result = TurnJudgeLog_MakeResult(
+        TURN_JUDGE_CASE_RT_OPP_LEFT
+    );
 
     /*
      * 이 함수는 CAND_RT_OPP_LEFT candidate가 있을 때만 호출된다.
@@ -354,7 +381,8 @@ static uint8_t JudgeRightTurnOppLeft(
     if ((trafficLightSnap->cz_x == 0U) &&
         (trafficLightSnap->cz_y == 0U))
     {
-        return 0U;
+        result.reason = TURN_JUDGE_REASON_CZ_PASSED;
+        return result;
     }
 
     /*
@@ -381,7 +409,10 @@ static uint8_t JudgeRightTurnOppLeft(
 
         if (passableTimeSec > egoTtc)
         {
-            return 0U;
+            result.egoTtcSec = egoTtc;
+            result.referenceSec = passableTimeSec;
+            result.reason = TURN_JUDGE_REASON_SIGNAL_PASSABLE;
+            return result;
         }
     }
 
@@ -412,12 +443,21 @@ static uint8_t JudgeRightTurnOppLeft(
 
     ttcGap = fabs(candidateTtc - egoTtc);
 
+    result.egoTtcSec = egoTtc;
+    result.candidateTtcSec = candidateTtc;
+    result.ttcGapSec = ttcGap;
+    result.referenceSec = RIGHT_TURN_JUDGE_CRITICAL_GAP_SEC;
+
     if (ttcGap > RIGHT_TURN_JUDGE_CRITICAL_GAP_SEC)
     {
-        return 0U;
+        result.reason = TURN_JUDGE_REASON_TTC_GAP_SAFE;
+        return result;
     }
 
-    return 1U;
+    result.warning = 1U;
+    result.reason = TURN_JUDGE_REASON_TTC_GAP_WARNING;
+
+    return result;
 }
 
 static void BuildRightTurnDecision(
@@ -425,9 +465,12 @@ static void BuildRightTurnDecision(
     uint8_t pedestrianFlag,
     const EgoVehicle *egoSnap,
     const CandidateVehicle *candidateSnap,
-    const TrafficLight *trafficLightSnap
+    const TrafficLight *trafficLightSnap,
+    TurnJudgeLogContext *logContext
 )
 {
+    TurnJudgeResult judgeResult;
+
     if (decision == NULL)
     {
         return;
@@ -444,10 +487,18 @@ static void BuildRightTurnDecision(
 
     if ((candidateSnap->type & CAND_RT_LEFT_STRAIGHT) != 0U)
     {
-        if (JudgeRightTurnLeftStraight(
-                egoSnap,
-                candidateSnap,
-                trafficLightSnap) != 0U)
+        judgeResult = JudgeRightTurnLeftStraight(
+            egoSnap,
+            candidateSnap,
+            trafficLightSnap
+        );
+
+        if (logContext != NULL)
+        {
+            logContext->results[judgeResult.judgeCase] = judgeResult;
+        }
+
+        if (judgeResult.warning != 0U)
         {
             decision->LStraightFlag = 1U;
         }
@@ -455,10 +506,18 @@ static void BuildRightTurnDecision(
 
     if ((candidateSnap->type & CAND_RT_OPP_LEFT) != 0U)
     {
-        if (JudgeRightTurnOppLeft(
-                egoSnap,
-                candidateSnap,
-                trafficLightSnap) != 0U)
+        judgeResult = JudgeRightTurnOppLeft(
+            egoSnap,
+            candidateSnap,
+            trafficLightSnap
+        );
+
+        if (logContext != NULL)
+        {
+            logContext->results[judgeResult.judgeCase] = judgeResult;
+        }
+
+        if (judgeResult.warning != 0U)
         {
             decision->OppLeftFlag = 1U;
         }
@@ -469,23 +528,30 @@ static void BuildRightTurnDecision(
 /* Left-turn judgement                                                        */
 /* -------------------------------------------------------------------------- */
 
-static uint8_t JudgeLeftTurnTlTime(
+static TurnJudgeResult JudgeLeftTurnTlTime(
     const EgoVehicle *egoSnap,
     const TrafficLight *trafficLightSnap
 )
 {
+    TurnJudgeResult result;
     double egoTtc;
     double passableTimeSec;
+
+    result = TurnJudgeLog_MakeResult(
+        TURN_JUDGE_CASE_LT_TL_TIME
+    );
 
     if ((trafficLightSnap->cz_x == 0U) &&
         (trafficLightSnap->cz_y == 0U))
     {
-        return 0U;
+        result.reason = TURN_JUDGE_REASON_CZ_PASSED;
+        return result;
     }
 
     if (trafficLightSnap->type == TL_NONE)
     {
-        return 0U;
+        result.reason = TURN_JUDGE_REASON_NO_TRAFFIC_LIGHT;
+        return result;
     }
 
     /*
@@ -495,12 +561,15 @@ static uint8_t JudgeLeftTurnTlTime(
     */
     if (trafficLightSnap->color == SIG_YELLOW)
     {
-        return 1U;
+        result.warning = 1U;
+        result.reason = TURN_JUDGE_REASON_SIGNAL_YELLOW;
+        return result;
     }
 
     if (trafficLightSnap->color != SIG_GREEN)
     {
-        return 0U; 
+        result.reason = TURN_JUDGE_REASON_SIGNAL_NOT_GREEN;
+        return result;
     }
 
     egoTtc = calculate_TTC(
@@ -517,23 +586,34 @@ static uint8_t JudgeLeftTurnTlTime(
         (double)trafficLightSnap->time_left +
         TURN_JUDGE_YELLOW_DURATION_SEC;
 
+    result.egoTtcSec = egoTtc;
+    result.referenceSec = passableTimeSec;
+
     if (egoTtc < passableTimeSec)
     {
-        return 0U;
+        result.reason = TURN_JUDGE_REASON_SIGNAL_PASSABLE;
+        return result;
     }
 
-    return 1U;
+    result.warning = 1U;
+    result.reason = TURN_JUDGE_REASON_SIGNAL_TIME_SHORT;
+
+    return result;
 }
 
-static uint8_t JudgeLeftTurnCandidate(
+static TurnJudgeResult JudgeLeftTurnCandidate(
     const EgoVehicle *egoSnap,
-    const CandidateVehicle *candidateSnap
+    const CandidateVehicle *candidateSnap,
+    TurnJudgeCase judgeCase
 )
 {
+    TurnJudgeResult result;
     double egoTtc;
     double candidateTtc;
     double ttcGap;
     uint8_t candidateTurnLeft;
+
+    result = TurnJudgeLog_MakeResult(judgeCase);
 
     egoTtc = calculate_TTC(
         egoSnap->x,
@@ -568,24 +648,36 @@ static uint8_t JudgeLeftTurnCandidate(
 
     ttcGap = fabs(egoTtc - candidateTtc);
 
+    result.egoTtcSec = egoTtc;
+    result.candidateTtcSec = candidateTtc;
+    result.ttcGapSec = ttcGap;
+    result.referenceSec = LEFT_TURN_JUDGE_CRITICAL_GAP_SEC;
+
     /*
      * TTC 차이가 임계값보다 작으면 충돌 위험 경고.
      */
     if (ttcGap < LEFT_TURN_JUDGE_CRITICAL_GAP_SEC)
     {
-        return 1U;
+        result.warning = 1U;
+        result.reason = TURN_JUDGE_REASON_TTC_GAP_WARNING;
+        return result;
     }
 
-    return 0U;
+    result.reason = TURN_JUDGE_REASON_TTC_GAP_SAFE;
+
+    return result;
 }
 
 static void BuildLeftTurnDecision(
     Dicision *decision,
     const EgoVehicle *egoSnap,
     const CandidateVehicle *candidateSnap,
-    const TrafficLight *trafficLightSnap
+    const TrafficLight *trafficLightSnap,
+    TurnJudgeLogContext *logContext
 )
 {
+    TurnJudgeResult judgeResult;
+
     if (decision == NULL)
     {
         return;
@@ -595,18 +687,35 @@ static void BuildLeftTurnDecision(
 
     decision->turnState = MANEUVER_LEFT_TURN_UNPROT;
 
-    if (JudgeLeftTurnTlTime(
-            egoSnap,
-            trafficLightSnap) != 0U)
+    judgeResult = JudgeLeftTurnTlTime(
+        egoSnap,
+        trafficLightSnap
+    );
+
+    if (logContext != NULL)
+    {
+        logContext->results[judgeResult.judgeCase] = judgeResult;
+    }
+
+    if (judgeResult.warning != 0U)
     {
         decision->tlWarningFlag = 1U;
     }
 
     if ((candidateSnap->type & CAND_LT_OPP_STRAIGHT) != 0U)
     {
-        if (JudgeLeftTurnCandidate(
-                egoSnap,
-                candidateSnap) != 0U)
+        judgeResult = JudgeLeftTurnCandidate(
+            egoSnap,
+            candidateSnap,
+            TURN_JUDGE_CASE_LT_OPP_STRAIGHT
+        );
+
+        if (logContext != NULL)
+        {
+            logContext->results[judgeResult.judgeCase] = judgeResult;
+        }
+
+        if (judgeResult.warning != 0U)
         {
             decision->OppStraightFlag = 1U;
         }
@@ -614,9 +723,18 @@ static void BuildLeftTurnDecision(
 
     if ((candidateSnap->type & CAND_LT_OPP_RIGHT) != 0U)
     {
-        if (JudgeLeftTurnCandidate(
-                egoSnap,
-                candidateSnap) != 0U)
+        judgeResult = JudgeLeftTurnCandidate(
+            egoSnap,
+            candidateSnap,
+            TURN_JUDGE_CASE_LT_OPP_RIGHT
+        );
+
+        if (logContext != NULL)
+        {
+            logContext->results[judgeResult.judgeCase] = judgeResult;
+        }
+
+        if (judgeResult.warning != 0U)
         {
             decision->OppRightFlag = 1U;
         }
@@ -736,6 +854,7 @@ static void TurnJudgeTask(void *pArg)
         CandidateVehicle candidateSnapshot;
         TrafficLight trafficLightSnapshot;
         Dicision decision;
+        TurnJudgeLogContext logContext;
 
         uint8_t maneuverSnapshot;
         uint8_t pedestrianSnapshot;
@@ -758,6 +877,12 @@ static void TurnJudgeTask(void *pArg)
             &decision,
             0,
             sizeof(decision)
+        );
+
+        (void)memset(
+            &logContext,
+            0,
+            sizeof(logContext)
         );
 
         shouldPost = 1U;
@@ -788,7 +913,8 @@ static void TurnJudgeTask(void *pArg)
                         pedestrianSnapshot,
                         &egoSnapshot,
                         &candidateSnapshot,
-                        &trafficLightSnapshot
+                        &trafficLightSnapshot,
+                        &logContext
                     );
                     break;
                 }
@@ -799,7 +925,8 @@ static void TurnJudgeTask(void *pArg)
                         &decision,
                         &egoSnapshot,
                         &candidateSnapshot,
-                        &trafficLightSnapshot
+                        &trafficLightSnapshot,
+                        &logContext
                     );
                     break;
                 }
@@ -829,6 +956,12 @@ static void TurnJudgeTask(void *pArg)
             continue;
         }
 
+        TurnJudgeLog_Build(
+            TURN_JUDGE_LOG_DETAIL,
+            &decision,
+            &logContext
+        );
+
         /*
          * 이전 판단 결과와 달라졌을 때만 LCD Queue에 전달.
          */
@@ -843,6 +976,12 @@ static void TurnJudgeTask(void *pArg)
 
             if (postResult != 0U)
             {
+                TurnJudgeLog_Build(
+                    TURN_JUDGE_LOG_POST,
+                    &decision,
+                    &logContext
+                );
+
                 previousDecision = decision;
                 hasPreviousDecision = 1U;
 
