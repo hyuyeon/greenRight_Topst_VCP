@@ -35,7 +35,6 @@ EgoVehicle ego = {0};
 CandidateVehicle candidateVehicle = {0};
 TrafficLight tl = {0};
 uint8_t maneuver = MANEUVER_STRAIGHT;
-
 volatile uint8_t pedFlag = 0U;
 
 #if ( MCU_BSP_SUPPORT_APP_BUZZER == 1)
@@ -218,20 +217,6 @@ static void Main_StartTask(void *pArg)
     /* Create application tasks */
     AppTaskCreate();
 
-#if (MCU_BSP_SUPPORT_APP_BUZZER == 1)
-    buzzerRet = BUZZER_Request(BUZZER_ON);
-
-    if (buzzerRet == SAL_RET_SUCCESS)
-    {
-        mcu_printf("\nBuzzer test requested\n");
-    }
-    else
-    {
-        mcu_printf("\nBuzzer test request failed: ret=%d\n",
-                   (sint32)buzzerRet);
-    }
-#endif
-
     while (1)
     {  /* Task body, always written as an infinite loop.       */
         DisplayAliveLog();
@@ -263,17 +248,21 @@ static void AppTaskCreate(void)
     Sensor_AppCreate();
 #endif
 
-#if ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
-    CAN_DemoCreateApp();
-#endif  // ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
-
 #if (MCU_BSP_SUPPORT_APP_DISPLAY == 1)
     Display_AppCreate();
+#endif
+
+#if ( MCU_BSP_SUPPORT_APP_BUZZER == 1 )
+    BUZZER_TaskCreate();
 #endif
 
 #if (MCU_BSP_SUPPORT_APP_TURN_JUDGE == 1)
     TurnJudge_AppCreate();
 #endif
+
+#if ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
+    CAN_DemoCreateApp();
+#endif  // ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
 
 #if ( MCU_BSP_SUPPORT_APP_FW_UPDATE == 1 )
     CreateFWUDTask();
@@ -289,9 +278,6 @@ static void AppTaskCreate(void)
     SPILED_CreateAppTask();
 #endif  // ( MCU_BSP_SUPPORT_APP_SPI_LED == 1 )
 
-#if ( MCU_BSP_SUPPORT_APP_BUZZER == 1 )
-    BUZZER_TaskCreate();
-#endif
 while (1)
     {
         DisplayAliveLog();
@@ -397,4 +383,3 @@ static void DisplayOTPInfo(void)
 }
 
 #endif  // ( MCU_BSP_SUPPORT_APP_BASE == 1 )
-

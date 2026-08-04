@@ -180,29 +180,9 @@ void Display_GetTrafficLightSnapshot(TrafficLight *outTl)
     taskEXIT_CRITICAL();
 }
 
-void Display_TrafficLightUpdate(const TrafficLight *newTl)
+void Display_TrafficLightNotify(void)
 {
-    uint8_t changed;
-
-    if (newTl == NULL)
-    {
-        return;
-    }
-
-    taskENTER_CRITICAL();
-
-    changed =
-        ((tl.type != newTl->type) ||
-         (tl.color != newTl->color) ||
-         (tl.time_left != newTl->time_left))
-        ? 1U
-        : 0U;
-
-    tl = *newTl;
-
-    taskEXIT_CRITICAL();
-
-    if ((changed != 0U) && (gTlDisplaySem != NULL))
+    if (gTlDisplaySem != NULL)
     {
         (void)xSemaphoreGive(gTlDisplaySem);
     }

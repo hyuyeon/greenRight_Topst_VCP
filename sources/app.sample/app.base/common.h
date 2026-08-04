@@ -31,19 +31,19 @@ typedef struct {
   uint16_t y; //candidate vehicle y coordinate
   uint8_t speed; //candidate vehicle speed
   uint16_t heading; //candidate vehicle heading (9 bit)
-	uint64_t timestamp_ms; //current timestamp in milliseconds on frame
+	uint64_t timestamp_ms; //source timestamp from the CAN header (12 bit)
 	uint64_t received_timestamp; //timestamp when the message received
 } CandidateVehicle;
 
 
 typedef struct {
     uint8_t  type; // msgId 0110의 tl_type_mask 원본값: 0=신호등 없음, 0x80=MQTT 통신 에러
-    uint8_t  color; //if 255, no traffic.
+    uint8_t  color; 
     uint8_t  time_left; //no time_left could be possible
     //(even if candidate vehicle is not in the conflict zone, 
     //he traffic light may be in the conflict zone)
-    uint16_t cz_x;  //conflict zone x coordinate where the traffic light is located
-    uint16_t cz_y;  //conflict zone y coordinate where the traffic light is located
+    uint16_t cz_x;  //자차가 회전하려는 목표 지점의 x
+    uint16_t cz_y;  //자차가 회전하려는 목표 지점의 y
     uint16_t timestamp; //source timestamp from the CAN header (12 bit)
     uint64_t received_timestamp; //local tick when the message was received
 } TrafficLight;
@@ -69,15 +69,6 @@ typedef struct
     uint16_t timestamp;	 // 12bit
 } CAN_Header_t;
 
-// uint8_t maneuver; //0: straight, 1: right turn, 2: unprotected left turn, 3: protected left turn
-// uint8_t pedFlag; ///* 00 None / 01 (As Decimal, 1) Exists / 10(As Decimal, 2) AI Error 
-// EgoVehicle ego;
-// CandidateVehicle candidateVehicle;
-// TrafficLight tl; //Displayed on LCD and used for decision making
-// QueueHandle_t dicisionQueue; //for task synchronization, task synch message queue
-// SemaphoreHandle_t turnJudgeSem; //judgement task wake up semaphore
-// SemaphoreHandle_t tlDisplaySem; //tlDisplay task wake up semaphore
-// QueueHandle_t buzzerQueue; //buzzer task wake up queue
 
 /* maneuver value definitions*/
 #define MANEUVER_STRAIGHT          0U
@@ -98,7 +89,7 @@ typedef struct
 #define TL_NONE                    0U     /* no referenced traffic light */
 #define TL_COMM_ERROR              0x80U  /* MQTT communication error: traffic light unavailable */
 
-/* dicision queue??湲몄씠 overwrite 諛⑹떇?대씪 1*/
+
 #define DICISION_QUEUE_LEN 1
 
 extern EgoVehicle ego;
@@ -107,4 +98,4 @@ extern TrafficLight tl;
 extern uint8_t maneuver;
 extern volatile uint8_t pedFlag;
 
-#endif /* COMMON_H */
+#endif /* COMMON_H */ 
