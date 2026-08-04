@@ -190,10 +190,6 @@ void cmain (void)
 */
 static void Main_StartTask(void *pArg)
 {
-#if (MCU_BSP_SUPPORT_APP_BUZZER == 1)
-    SALRetCode_t buzzerRet;
-#endif
-
     (void)pArg;
     (void)SAL_OsInitFuncs();
 
@@ -202,26 +198,14 @@ static void Main_StartTask(void *pArg)
     ST7735S_Init();
     mcu_printf("[LCD] Init done\n");
 
-    /* LCD 목데이터 화면 출력 */
-
-
-    Dashboard_DrawStatic(
-        DIR_RIGHT,
-        WARN_STRAIGHT_VEHICLE | WARN_PEDESTRIAN,
-        SIG_GREEN,
-        15U,
-        1U
-    );
-    mcu_printf("[LCD] Mock display done\n");
-
     /* Create application tasks */
     AppTaskCreate();
 
     while (1)
     {  /* Task body, always written as an infinite loop.       */
-        DisplayAliveLog();
-        //mcu_printf("\n MCU Idle !!!");
+        // DisplayAliveLog();
         (void)SAL_TaskSleep(5000);
+        
     }
     /*------------------------------------------------------------------------------------*/
 }
@@ -278,11 +262,6 @@ static void AppTaskCreate(void)
     SPILED_CreateAppTask();
 #endif  // ( MCU_BSP_SUPPORT_APP_SPI_LED == 1 )
 
-while (1)
-    {
-        DisplayAliveLog();
-        (void)SAL_TaskSleep(5000UL);
-    }
 }
 
 static void DisplayAliveLog(void)
