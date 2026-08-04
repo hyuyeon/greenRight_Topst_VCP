@@ -35,7 +35,6 @@ EgoVehicle ego = {0};
 CandidateVehicle candidateVehicle = {0};
 TrafficLight tl = {0};
 uint8_t maneuver = MANEUVER_STRAIGHT;
-
 volatile uint8_t pedFlag = 0U;
 
 #if ( MCU_BSP_SUPPORT_APP_BUZZER == 1)
@@ -217,20 +216,6 @@ static void Main_StartTask(void *pArg)
 
     /* Create application tasks */
     AppTaskCreate();
-
-#if (MCU_BSP_SUPPORT_APP_BUZZER == 1)
-    buzzerRet = BUZZER_Request(BUZZER_ON);
-
-    if (buzzerRet == SAL_RET_SUCCESS)
-    {
-        mcu_printf("\nBuzzer test requested\n");
-    }
-    else
-    {
-        mcu_printf("\nBuzzer test request failed: ret=%d\n",
-                   (sint32)buzzerRet);
-    }
-#endif
 
     while (1)
     {  /* Task body, always written as an infinite loop.       */

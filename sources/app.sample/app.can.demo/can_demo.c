@@ -15,6 +15,7 @@
 #include "can_porting.h"
 #include "can_demo.h"
 #include "common.h"
+#include "display_task.h"
 #include "turnJudgeTask.h"
 
 #define CAN_DEMO_FRAME_SIZE                 (8U)
@@ -36,8 +37,6 @@ static sint32 gCanDemoInitResult = -1;
 
 static uint32 gCanDemoRxEvent;
 static uint8 gCanDemoRxEventCreated;
-static uint32 gCanDemoTlDisplaySem;
-static uint8 gCanDemoTlDisplaySemCreated;
 static uint32 gCanDemoLogLock;
 static uint8 gCanDemoLogLockCreated;
 
@@ -152,17 +151,6 @@ static uint8 CAN_DemoIsTrafficLightTypeValid
     }
 
     return ucValid;
-}
-
-static void CAN_DemoNotifyTlDisplay
-(
-    void
-)
-{
-    if( gCanDemoTlDisplaySemCreated == TRUE )
-    {
-        ( void )SAL_SemaphoreRelease( gCanDemoTlDisplaySem );
-    }
 }
 
 static uint8 CAN_DemoHandleCandidateIntro
@@ -289,7 +277,7 @@ static uint8 CAN_DemoHandleTrafficLight
 
     if( ucDisplayChanged == TRUE )
     {
-        CAN_DemoNotifyTlDisplay();
+        Display_TrafficLightNotify();
     }
 
     if( ( ( ucPreviousManeuver == MANEUVER_RIGHT_TURN ) ||
@@ -509,25 +497,6 @@ sint32 CAN_DemoInitialize
     return gCanDemoInitResult;
 }
 
-sint32 CAN_DemoWaitTrafficLightDisplay
-(
-    uint32                              uiTimeout
-)
-{
-    sint32 iResult;
-
-    iResult = -1;
-
-    if( gCanDemoTlDisplaySemCreated == TRUE )
-    {
-        iResult = ( sint32 )SAL_SemaphoreWait( gCanDemoTlDisplaySem,
-                                               uiTimeout,
-                                               SAL_OPT_BLOCKING );
-    }
-
-    return iResult;
-}
-
 void CAN_DemoTest
 (
     uint8                               ucArgc,
@@ -566,7 +535,6 @@ void CAN_DemoCreateApp
     gCanDemoRxEnabled = TRUE;
     gCanDemoTxEnabled = TRUE;
     gCanDemoRxEventCreated = FALSE;
-    gCanDemoTlDisplaySemCreated = FALSE;
     gCanDemoLogLockCreated = FALSE;
 
     ( void )SAL_CoreCriticalEnter();
@@ -584,17 +552,6 @@ void CAN_DemoCreateApp
                          0UL ) == SAL_RET_SUCCESS )
     {
         gCanDemoRxEventCreated = TRUE;
-    }
-
-    if( SAL_SemaphoreCreate( &gCanDemoTlDisplaySem,
-                             ( const uint8 * )"CAN TL Display",
-                             1UL,
-                             SAL_OPT_BLOCKING ) == SAL_RET_SUCCESS )
-    {
-        gCanDemoTlDisplaySemCreated = TRUE;
-        ( void )SAL_SemaphoreWait( gCanDemoTlDisplaySem,
-                                   0UL,
-                                   SAL_OPT_NON_BLOCKING );
     }
 
     if( SAL_SemaphoreCreate( &gCanDemoLogLock,

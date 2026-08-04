@@ -79,11 +79,6 @@ void CAN_DemoCreateApp
     void
 );
 
-sint32 CAN_DemoWaitTrafficLightDisplay
-(
-    uint32                              uiTimeout
-);
-
 #endif  // ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
 
 #endif  // MCU_BSP_CAN_DEMO_HEADER

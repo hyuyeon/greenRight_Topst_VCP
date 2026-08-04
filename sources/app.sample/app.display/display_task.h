@@ -5,17 +5,17 @@
 
 #include "common.h"
 
-/*
- * 기존 TurnJudgeTask와의 호환을 위해 전역 TrafficLight 상태를 유지한다.
- * CAN 수신부에서는 직접 수정하기보다 Display_TrafficLightUpdate() 사용 권장.
- */
-extern TrafficLight tl;
+
 
 /* 디스플레이 동기화 객체와 태스크 생성 */
 void Display_AppCreate(void);
 
+/*
+ * CAN 수신부는 tl을 갱신한 후,
+ * 표시할 값이 변경되면 Display_TrafficLightNotify()를 호출한다.
+ */
 /* CAN 수신부에서 신호등 데이터 수신 후 호출 */
-void Display_TrafficLightUpdate(const TrafficLight *newTl);
+void Display_TrafficLightNotify(void);
 
 /* TurnJudgeTask에서 판단 완료 후 호출 */
 uint8_t Display_DicisionPost(const Dicision *newDecision);
