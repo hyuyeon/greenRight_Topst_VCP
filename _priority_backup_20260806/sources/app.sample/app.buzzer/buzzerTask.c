@@ -20,7 +20,6 @@
 
 #include "buzzer.h"
 #include "buzzerTask.h"
-#include "app_priority_cfg.h"
 
 /*
 ***************************************************************************************************
@@ -182,7 +181,7 @@ void BUZZER_TaskCreate
         (SALTaskFunc)&BUZZER_Task,
         (void * const)&BuzzerTaskStk[0],
         BUZZER_TASK_STK_SIZE,
-        APP_PRIO_BUZZER,   /* Below Normal: 경고음 재생 - 우선순위 설계 제안 */
+        SAL_PRIO_KEY_APP,
         NULL_PTR
     );
 

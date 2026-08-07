@@ -26,7 +26,6 @@
 #include "speed_sensor.h"
 #include "position.h"
 #include "common.h"
-#include "app_priority_cfg.h"
 
 #include <sal_internal.h>
 #include <app_cfg.h>
@@ -719,6 +718,6 @@ void Sensor_AppCreate(void)
         (SALTaskFunc)&Sensor_Task,
         &taskStk[0],
         ACFG_TASK_MEDIUM_STK_SIZE,
-        APP_PRIO_NORMAL,   /* Normal: IMU/속도 센서 갱신(20ms) - 우선순위 설계 제안 */
+        SAL_PRIO_BNO055_APP,
         NULL);
 }

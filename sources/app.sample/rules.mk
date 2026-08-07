@@ -65,3 +65,8 @@ endif
 ifeq ($(MCU_BSP_BUILD_FLAGS_TEST_APP_CAN), 1)
     include $(MCU_BSP_APP_SAMPLE_PATH)/test.app.can/rules.mk
 endif
+
+# Pedestrian Flag (AI-G camera UART link)
+ifeq ($(MCU_BSP_BUILD_FLAGS_APP_PED_FLAG), 1)
+    include $(MCU_BSP_APP_SAMPLE_PATH)/app.ped_flag/rules.mk
+endif

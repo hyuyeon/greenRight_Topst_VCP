@@ -12,7 +12,6 @@
 #include "common.h"
 #include "lcd.h"
 #include "display_task.h"
-#include "app_priority_cfg.h"
 
 /* -------------------------------------------------------------------------- */
 /* Task resources                                                             */
@@ -334,7 +333,7 @@ void Display_AppCreate(void)
         (SALTaskFunc)&TlDisplayTask,
         &gTlDisplayTaskStack[0],
         ACFG_TASK_MEDIUM_STK_SIZE,
-        APP_PRIO_NORMAL,        /* Normal: 신호등 LCD 갱신 - 우선순위 설계 제안 */
+        SAL_PRIO_APP_CFG,
         NULL
     );
 
@@ -344,7 +343,7 @@ void Display_AppCreate(void)
         (SALTaskFunc)&DicisionDisplayTask,
         &gDicisionDisplayTaskStack[0],
         ACFG_TASK_MEDIUM_STK_SIZE,
-        APP_PRIO_DECISION_DISP, /* Above Normal: 방향/경고 LCD 갱신 - 우선순위 설계 제안 */
+        SAL_PRIO_APP_CFG,
         NULL
     );
 

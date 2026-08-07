@@ -1,0 +1,194 @@
+--- _priority_backup_20260806/sources/app.sample/app.base/main.c	2026-08-06 07:18:46.572733900 +0000
++++ sources/app.sample/app.base/main.c	2026-08-06 07:19:23.689836100 +0000
+@@ -27,6 +27,7 @@
+ #include "sensor_app.h"
+ #include <gpio.h>
+ #include "common.h"
++#include "app_priority_cfg.h"
+ #include "lcd.h"
+ #include "display_task.h"
+ #include "turnJudgeTask.h"
+@@ -167,7 +168,7 @@
+                          (SALTaskFunc) &Main_StartTask,
+                          &AppTaskStartStk[0],
+                          ACFG_TASK_MEDIUM_STK_SIZE,
+-                         SAL_PRIO_APP_CFG,
++                         APP_PRIO_APP_START,   /* Normal(유휴): 부팅 후 유휴 - 우선순위 설계 제안 */
+                          NULL);
+ 
+     if (err == SAL_RET_SUCCESS)
+--- _priority_backup_20260806/sources/app.sample/app.buzzer/buzzerTask.c	2026-08-06 07:18:46.639313900 +0000
++++ sources/app.sample/app.buzzer/buzzerTask.c	2026-08-06 07:19:42.740252700 +0000
+@@ -20,6 +20,7 @@
+ 
+ #include "buzzer.h"
+ #include "buzzerTask.h"
++#include "app_priority_cfg.h"
+ 
+ /*
+ ***************************************************************************************************
+@@ -181,7 +182,7 @@
+         (SALTaskFunc)&BUZZER_Task,
+         (void * const)&BuzzerTaskStk[0],
+         BUZZER_TASK_STK_SIZE,
+-        SAL_PRIO_KEY_APP,
++        APP_PRIO_BUZZER,   /* Below Normal: 경고음 재생 - 우선순위 설계 제안 */
+         NULL_PTR
+     );
+ 
+--- _priority_backup_20260806/sources/app.sample/app.can.demo/can_demo.c	2026-08-06 07:18:46.722626100 +0000
++++ sources/app.sample/app.can.demo/can_demo.c	2026-08-06 07:19:55.408072900 +0000
+@@ -17,6 +17,7 @@
+ #include "common.h"
+ #include "display_task.h"
+ #include "turnJudgeTask.h"
++#include "app_priority_cfg.h"
+ 
+ #define CAN_DEMO_FRAME_SIZE                 (8U)
+ #define CAN_DEMO_MSG_ID_SHIFT               (60U)
+@@ -567,7 +568,7 @@
+                             ( SALTaskFunc )&CAN_DemoRxTask,
+                             &uiCanDemoRxTaskStk[0],
+                             CAN_DEMO_TASK_STK_SIZE,
+-                            SAL_PRIO_CAN_DEMO,
++                            APP_PRIO_NORMAL,   /* Normal: CAN 파싱(V2V/신호등 수신) - 우선순위 설계 제안 */
+                             NULL_PTR );
+ 
+     ( void )SAL_TaskCreate( &uiCanDemoTxTaskID,
+@@ -575,7 +576,7 @@
+                             ( SALTaskFunc )&CAN_DemoTxTask,
+                             &uiCanDemoTxTaskStk[0],
+                             CAN_DEMO_TX_TASK_STK_SIZE,
+-                            SAL_PRIO_CAN_DEMO,
++                            APP_PRIO_NORMAL,   /* Normal: CAN 송신(50ms) - 우선순위 설계 제안 */
+                             NULL_PTR );
+ }
+ 
+--- _priority_backup_20260806/sources/app.sample/app.display/display_task.c	2026-08-06 07:18:46.789310300 +0000
++++ sources/app.sample/app.display/display_task.c	2026-08-06 07:20:19.422453400 +0000
+@@ -12,6 +12,7 @@
+ #include "common.h"
+ #include "lcd.h"
+ #include "display_task.h"
++#include "app_priority_cfg.h"
+ 
+ /* -------------------------------------------------------------------------- */
+ /* Task resources                                                             */
+@@ -333,7 +334,7 @@
+         (SALTaskFunc)&TlDisplayTask,
+         &gTlDisplayTaskStack[0],
+         ACFG_TASK_MEDIUM_STK_SIZE,
+-        SAL_PRIO_APP_CFG,
++        APP_PRIO_NORMAL,        /* Normal: 신호등 LCD 갱신 - 우선순위 설계 제안 */
+         NULL
+     );
+ 
+@@ -343,7 +344,7 @@
+         (SALTaskFunc)&DicisionDisplayTask,
+         &gDicisionDisplayTaskStack[0],
+         ACFG_TASK_MEDIUM_STK_SIZE,
+-        SAL_PRIO_APP_CFG,
++        APP_PRIO_DECISION_DISP, /* Above Normal: 방향/경고 LCD 갱신 - 우선순위 설계 제안 */
+         NULL
+     );
+ 
+--- _priority_backup_20260806/sources/app.sample/app.ped_flag/ped_flag_isr.c	2026-08-06 07:18:46.856057900 +0000
++++ sources/app.sample/app.ped_flag/ped_flag_isr.c	2026-08-06 07:20:39.113375600 +0000
+@@ -41,6 +41,7 @@
+ #include "ped_flag_isr.h"
+ #include "common.h"
+ #include "turnJudgeTask.h"
++#include "app_priority_cfg.h"
+ 
+ #define PED_FLAG_UART_CH        UART_CH0
+ #define PED_FLAG_UART_PORTCFG   0U
+@@ -226,7 +227,7 @@
+     (void)GPIO_Set(PED_FLAG_TEST_LED_PIN, 0U);
+ 
+     (void)SAL_TaskCreate(&sPedFlagTaskID, (const uint8 *)"PedFlag_RxTask", (SALTaskFunc)&PedFlag_RxTask,
+-                          &sPedFlagTaskStk[0], PED_FLAG_TASK_STK_SIZE, SAL_PRIO_APP_CFG, NULL);
++                          &sPedFlagTaskStk[0], PED_FLAG_TASK_STK_SIZE, APP_PRIO_NORMAL, NULL);
+ 
+     mcu_printf("PedFlag: UART_CH0 opened (interrupt mode), LED test on GPIO_GPC(1)\n");
+ }
+--- _priority_backup_20260806/sources/app.sample/app.sensor/sensor_app.c	2026-08-06 07:18:46.922735900 +0000
++++ sources/app.sample/app.sensor/sensor_app.c	2026-08-06 07:20:59.491365600 +0000
+@@ -26,6 +26,7 @@
+ #include "speed_sensor.h"
+ #include "position.h"
+ #include "common.h"
++#include "app_priority_cfg.h"
+ 
+ #include <sal_internal.h>
+ #include <app_cfg.h>
+@@ -718,6 +719,6 @@
+         (SALTaskFunc)&Sensor_Task,
+         &taskStk[0],
+         ACFG_TASK_MEDIUM_STK_SIZE,
+-        SAL_PRIO_BNO055_APP,
++        APP_PRIO_NORMAL,   /* Normal: IMU/속도 센서 갱신(20ms) - 우선순위 설계 제안 */
+         NULL);
+ }
+\ No newline at end of file
+--- _priority_backup_20260806/sources/app.sample/app.turnjudge/turnJudgeTask.c	2026-08-06 07:18:46.994759500 +0000
++++ sources/app.sample/app.turnjudge/turnJudgeTask.c	2026-08-06 07:21:15.576519600 +0000
+@@ -12,6 +12,7 @@
+ #include "display_task.h"
+ #include "ttc.h"
+ #include "turnJudgeLog.h"
++#include "app_priority_cfg.h"
+ 
+ #if (MCU_BSP_SUPPORT_APP_BUZZER == 1)
+ #include "buzzerTask.h"
+@@ -1048,7 +1049,7 @@
+         (SALTaskFunc)&TurnJudgeTask,
+         &gTurnJudgeTaskStack[0],
+         TURN_JUDGE_TASK_STACK_SIZE,
+-        SAL_PRIO_APP_CFG,
++        APP_PRIO_TURN_JUDGE,   /* High: TTC 계산/회전 판단 - 우선순위 설계 제안 */
+         NULL
+     );
+ 
+--- new file ---
+sources/app.sample/app.base/app_priority_cfg.h (신규 파일)
+// SPDX-License-Identifier: Apache-2.0
+
+/*
+***************************************************************************************************
+*
+*   FileName : app_priority_cfg.h
+*
+*   Description :
+*       VCP-G 포팅 버전 RTOS Task 우선순위 정의 (설계 제안).
+*
+*       1차 프로젝트(STM32/CMSIS) 당시 사용하던 4단계 구조
+*       (High > Above Normal > Normal > Below Normal)를 그대로 유지하면서,
+*       포팅 과정에서 새로 추가된 태스크(PedFlagRxTask, SensorTask, CanTxTask 등)를
+*       Normal 등급에 편입했다.
+*
+*       TCC SAL 우선순위 규약: 숫자가 낮을수록 우선순위가 높다 (sal_com.h 참고).
+*
+***************************************************************************************************
+*/
+
+#ifndef APP_PRIORITY_CFG_H
+#define APP_PRIORITY_CFG_H
+
+/* High         : TurnJudgeTask - TTC 계산 및 우회전/비보호좌회전 판단 (gTurnJudgeSem) */
+#define APP_PRIO_TURN_JUDGE      (2U)
+
+/* Above Normal : DicisionDisplayTask - LCD 방향/경고 표시 갱신 (gDicisionQueue) */
+#define APP_PRIO_DECISION_DISP   (3U)
+
+/* Normal       : CanRxTask/CanTxTask, PedFlagRxTask, TlDisplayTask, SensorTask
+ *                (TurnJudgeTask를 직접 깨우거나(notify), 주기적으로 상태만 갱신하는 태스크들) */
+#define APP_PRIO_NORMAL          (4U)
+
+/* Normal(유휴) : App Task Start - 부팅 초기화 후에는 하는 일이 없으므로
+ *                다른 Normal 태스크보다 한 단계 낮춰 배경(background)으로 둔다 */
+#define APP_PRIO_APP_START       (5U)
+
+/* Below Normal : BuzzerTask - 경고음 재생 (gBuzzerQueue) */
+#define APP_PRIO_BUZZER          (6U)
+
+#endif /* APP_PRIORITY_CFG_H */

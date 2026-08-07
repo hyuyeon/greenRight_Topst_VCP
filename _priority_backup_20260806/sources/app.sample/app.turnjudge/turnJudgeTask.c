@@ -12,7 +12,6 @@
 #include "display_task.h"
 #include "ttc.h"
 #include "turnJudgeLog.h"
-#include "app_priority_cfg.h"
 
 #if (MCU_BSP_SUPPORT_APP_BUZZER == 1)
 #include "buzzerTask.h"
@@ -1049,7 +1048,7 @@ void TurnJudge_AppCreate(void)
         (SALTaskFunc)&TurnJudgeTask,
         &gTurnJudgeTaskStack[0],
         TURN_JUDGE_TASK_STACK_SIZE,
-        APP_PRIO_TURN_JUDGE,   /* High: TTC 계산/회전 판단 - 우선순위 설계 제안 */
+        SAL_PRIO_APP_CFG,
         NULL
     );
 

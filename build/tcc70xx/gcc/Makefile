@@ -106,6 +106,7 @@ MCU_BSP_BUILD_FLAGS_APP_POSITION            ?= 1
 MCU_BSP_BUILD_FLAGS_APP_BUZZER              ?= 1
 MCU_BSP_BUILD_FLAGS_APP_DISPLAY             ?= 1
 MCU_BSP_BUILD_FLAGS_APP_TURN_JUDGE          ?= 1
+MCU_BSP_BUILD_FLAGS_APP_PED_FLAG            ?= 1
 
 # Test Application Build Flags
 MCU_BSP_BUILD_FLAGS_TEST_APP_CAN            ?= 0

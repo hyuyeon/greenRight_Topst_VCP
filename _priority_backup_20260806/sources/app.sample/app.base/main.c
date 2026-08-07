@@ -27,7 +27,6 @@
 #include "sensor_app.h"
 #include <gpio.h>
 #include "common.h"
-#include "app_priority_cfg.h"
 #include "lcd.h"
 #include "display_task.h"
 #include "turnJudgeTask.h"
@@ -168,7 +167,7 @@ void cmain (void)
                          (SALTaskFunc) &Main_StartTask,
                          &AppTaskStartStk[0],
                          ACFG_TASK_MEDIUM_STK_SIZE,
-                         APP_PRIO_APP_START,   /* Normal(유휴): 부팅 후 유휴 - 우선순위 설계 제안 */
+                         SAL_PRIO_APP_CFG,
                          NULL);
 
     if (err == SAL_RET_SUCCESS)

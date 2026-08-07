@@ -17,7 +17,6 @@
 #include "common.h"
 #include "display_task.h"
 #include "turnJudgeTask.h"
-#include "app_priority_cfg.h"
 
 #define CAN_DEMO_FRAME_SIZE                 (8U)
 #define CAN_DEMO_MSG_ID_SHIFT               (60U)
@@ -568,7 +567,7 @@ void CAN_DemoCreateApp
                             ( SALTaskFunc )&CAN_DemoRxTask,
                             &uiCanDemoRxTaskStk[0],
                             CAN_DEMO_TASK_STK_SIZE,
-                            APP_PRIO_NORMAL,   /* Normal: CAN 파싱(V2V/신호등 수신) - 우선순위 설계 제안 */
+                            SAL_PRIO_CAN_DEMO,
                             NULL_PTR );
 
     ( void )SAL_TaskCreate( &uiCanDemoTxTaskID,
@@ -576,7 +575,7 @@ void CAN_DemoCreateApp
                             ( SALTaskFunc )&CAN_DemoTxTask,
                             &uiCanDemoTxTaskStk[0],
                             CAN_DEMO_TX_TASK_STK_SIZE,
-                            APP_PRIO_NORMAL,   /* Normal: CAN 송신(50ms) - 우선순위 설계 제안 */
+                            SAL_PRIO_CAN_DEMO,
                             NULL_PTR );
 }
 
