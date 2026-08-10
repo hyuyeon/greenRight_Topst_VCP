@@ -20,8 +20,9 @@
 *         - 그 외 maneuver 상황이면 pedFlag 갱신만 하고 아무 것도 안 함
 *
 *       [이 브랜치 전용] pedFlag/maneuver는 이 파일에서 정의하지 않는다 (main.c에 이미 있음).
-*       세마포어도 이 파일에서 만들지 않는다 (TurnJudgeTask가 자체 세마포어를 갖고
-*       TurnJudge_Notify() API로 깨우는 구조이기 때문).
+*       TurnJudge 세마포어는 이 파일에서 만들지 않는다 (TurnJudgeTask가 자체 세마포어를
+*       갖고 TurnJudge_Notify() API로 깨우는 구조). UART 수신 대기용 세마포어만 이 파일에서
+*       생성한다.
 *
 *       AI-G UART 링크: UART_CH0 (GPIO_A28=TX, GPIO_A29=RX). 이 프로젝트에서 UART_CH0을
 *       쓰는 다른 모듈이 없음을 확인함.
@@ -66,12 +67,15 @@ static volatile uint8  sLastDecodedFlag  = 0U;
 static UartParam_t     sPedFlagParam;
 static uint32           sPedFlagTaskID = 0;
 static uint32           sPedFlagTaskStk[PED_FLAG_TASK_STK_SIZE];
+static uint32           sPedFlagRxSem = 0U;
+static uint8            sPedFlagRxSemCreated = 0U;
 
 /* ai_link.c 호환용 상태 (AI_Link_GetFlag / AI_Link_HasNewFlag 용) */
 static volatile uint8   sAiLinkLatestFlag = 0U;
 static volatile boolean sAiLinkHasNewFlag = FALSE;
 
 static boolean DecodeFlag(uint8 raw, uint8 *pOut);
+static void    PedFlag_UartISR(void *pArg);
 static void    PedFlag_RxTask(void *pArg);
 
 /*
@@ -109,6 +113,22 @@ static boolean DecodeFlag(uint8 raw, uint8 *pOut)
     return ok;
 }
 
+static void PedFlag_UartISR(void *pArg)
+{
+    /* Move bytes from the HW FIFO to the vendor UART driver's RX ring buffer. */
+    UART_ISR(pArg);
+
+#if (PED_DEBUG == 1)
+    sIrqCount++;
+#endif
+
+    /* SAL selects xSemaphoreGiveFromISR() automatically in interrupt context. */
+    if (sPedFlagRxSemCreated != 0U)
+    {
+        (void)SAL_SemaphoreRelease(sPedFlagRxSem);
+    }
+}
+
 /*
 ***************************************************************************************************
 *                                          PedFlag_RxTask
@@ -129,74 +149,76 @@ static void PedFlag_RxTask(void *pArg)
 
     for (;;)
     {
-        n = UART_Read(PED_FLAG_UART_CH, rxBuf, PED_FLAG_RX_BUF_SIZE);
+        (void)SAL_SemaphoreWait(sPedFlagRxSem, 0L, SAL_OPT_BLOCKING);
 
-        if (n > 0)
+        do
         {
-            uint8 received = rxBuf[n - 1];
-            uint8 decoded;
+            n = UART_Read(PED_FLAG_UART_CH, rxBuf, PED_FLAG_RX_BUF_SIZE);
+
+            if (n > 0)
+            {
+                uint8 received = rxBuf[n - 1];
+                uint8 decoded;
 
 #if (PED_DEBUG == 1)
-            sIrqCount++;
-            sRxByteCount += (uint32)n;
-            sLastRawByte = received;
+                sRxByteCount += (uint32)n;
+                sLastRawByte = received;
 #endif
 
-            if (DecodeFlag(received, &decoded) == TRUE)
-            {
-                boolean shouldJudge = (boolean)((hasPedSample == 0U) || (decoded != prevPedFlag));
-
-                pedFlag      = decoded;   /* main.c에 정의된 전역 갱신 */
-                prevPedFlag  = decoded;
-                hasPedSample = 1U;
-
-                /* ai_link.c 호환: 최신 플래그 + "새 값 도착" 표시 */
-                sAiLinkLatestFlag = decoded;
-                sAiLinkHasNewFlag = shouldJudge;
-
-                /* LED 테스트 표시 (1=켜짐, 0=꺼짐, 2=에러는 이전 상태 유지) */
-                if (decoded == 1U)
+                if (DecodeFlag(received, &decoded) == TRUE)
                 {
-                    (void)GPIO_Set(PED_FLAG_TEST_LED_PIN, 1U);
-                }
-                else if (decoded == 0U)
-                {
-                    (void)GPIO_Set(PED_FLAG_TEST_LED_PIN, 0U);
+                    boolean shouldJudge = (boolean)((hasPedSample == 0U) || (decoded != prevPedFlag));
+
+                    pedFlag      = decoded;   /* main.c에 정의된 전역 갱신 */
+                    prevPedFlag  = decoded;
+                    hasPedSample = 1U;
+
+                    /* ai_link.c 호환: 최신 플래그 + "새 값 도착" 표시 */
+                    sAiLinkLatestFlag = decoded;
+                    sAiLinkHasNewFlag = shouldJudge;
+
+                    /* LED 테스트 표시 (1=켜짐, 0=꺼짐, 2=에러는 이전 상태 유지) */
+                    if (decoded == 1U)
+                    {
+                        (void)GPIO_Set(PED_FLAG_TEST_LED_PIN, 1U);
+                    }
+                    else if (decoded == 0U)
+                    {
+                        (void)GPIO_Set(PED_FLAG_TEST_LED_PIN, 0U);
+                    }
+                    else
+                    {
+                        ; /* 2 = AI 인식 오류: LED 상태는 그대로 둠 */
+                    }
+
+#if (PED_DEBUG == 1)
+                    sValidByteCount++;
+                    sLastDecodedFlag = decoded;
+#endif
+                    mcu_printf("PedFlag: raw=0x%02X decoded=%d (changed=%d)\n",
+                               received, (int)decoded, (int)shouldJudge);
+
+                    /* 값이 실제로 바뀌었고, 지금이 우회전 상황일 때만 TurnJudgeTask를 깨움 */
+                    if ((shouldJudge == TRUE) && (maneuver == (uint8_t)MANEUVER_RIGHT_TURN))
+                    {
+                        TurnJudge_Notify();
+
+#if (PED_DEBUG == 1)
+                        sNotifyCount++;
+#endif
+                        mcu_printf("PedFlag: TurnJudge_Notify() called (maneuver=RIGHT_TURN, decoded=%d)\n",
+                                   (int)decoded);
+                    }
+                    /* 우회전 상황이 아니면: pedFlag 갱신만 하고 별도 동작 없음 */
                 }
                 else
                 {
-                    ; /* 2 = AI 인식 오류: LED 상태는 그대로 둠 */
+#if (PED_DEBUG == 1)
+                    sInvalidByteCount++;
+#endif
                 }
-
-#if (PED_DEBUG == 1)
-                sValidByteCount++;
-                sLastDecodedFlag = decoded;
-#endif
-                mcu_printf("PedFlag: raw=0x%02X decoded=%d (changed=%d)\n",
-                           received, (int)decoded, (int)shouldJudge);
-
-                /* 값이 실제로 바뀌었고, 지금이 우회전 상황일 때만 TurnJudgeTask를 깨움 */
-                if ((shouldJudge == TRUE) && (maneuver == (uint8_t)MANEUVER_RIGHT_TURN))
-                {
-                    TurnJudge_Notify();
-
-#if (PED_DEBUG == 1)
-                    sNotifyCount++;
-#endif
-                    mcu_printf("PedFlag: TurnJudge_Notify() called (maneuver=RIGHT_TURN, decoded=%d)\n",
-                               (int)decoded);
-                }
-                /* 우회전 상황이 아니면: pedFlag 갱신만 하고 별도 동작 없음 */
             }
-            else
-            {
-#if (PED_DEBUG == 1)
-                sInvalidByteCount++;
-#endif
-            }
-        }
-
-        (void)SAL_TaskSleep(10);
+        } while (n > 0);
     }
 }
 
@@ -207,6 +229,25 @@ static void PedFlag_RxTask(void *pArg)
 */
 void PedFlag_Init(void)
 {
+    SALRetCode_t result;
+    sint32       uartResult;
+
+    result = (SALRetCode_t)SAL_SemaphoreCreate(
+        &sPedFlagRxSem,
+        (const uint8 *)"PedFlag RX",
+        1UL,
+        SAL_OPT_BLOCKING
+    );
+
+    if (result != SAL_RET_SUCCESS)
+    {
+        mcu_printf("PedFlag: RX semaphore create failed: %d\n", (sint32)result);
+        return;
+    }
+
+    sPedFlagRxSemCreated = 1U;
+    (void)SAL_SemaphoreWait(sPedFlagRxSem, 0L, SAL_OPT_NON_BLOCKING);
+
     sPedFlagParam.sCh          = PED_FLAG_UART_CH;
     sPedFlagParam.sPriority    = GIC_PRIORITY_NO_MEAN;
     sPedFlagParam.sBaudrate    = PED_FLAG_BAUDRATE;
@@ -217,17 +258,37 @@ void PedFlag_Init(void)
     sPedFlagParam.sFIFO        = ENABLE_FIFO;
     sPedFlagParam.s2StopBit    = TWO_STOP_BIT_OFF;
     sPedFlagParam.sParity      = PARITY_SPACE;
-    sPedFlagParam.sFnCallback  = (GICIsrFunc)&UART_ISR;
+    sPedFlagParam.sFnCallback  = (GICIsrFunc)&PedFlag_UartISR;
 
     UART_Close(PED_FLAG_UART_CH);
-    (void)UART_Open(&sPedFlagParam);
+    uartResult = UART_Open(&sPedFlagParam);
+
+    if (uartResult != (sint32)SAL_RET_SUCCESS)
+    {
+        mcu_printf("PedFlag: UART_CH0 open failed: %d\n", uartResult);
+        return;
+    }
 
     /* LED 테스트 핀 초기화 */
     (void)GPIO_Config(PED_FLAG_TEST_LED_PIN, GPIO_FUNC(0) | GPIO_OUTPUT);
     (void)GPIO_Set(PED_FLAG_TEST_LED_PIN, 0U);
 
-    (void)SAL_TaskCreate(&sPedFlagTaskID, (const uint8 *)"PedFlag_RxTask", (SALTaskFunc)&PedFlag_RxTask,
-                          &sPedFlagTaskStk[0], PED_FLAG_TASK_STK_SIZE, APP_PRIO_NORMAL, NULL);
+    result = (SALRetCode_t)SAL_TaskCreate(
+        &sPedFlagTaskID,
+        (const uint8 *)"PedFlag_RxTask",
+        (SALTaskFunc)&PedFlag_RxTask,
+        &sPedFlagTaskStk[0],
+        PED_FLAG_TASK_STK_SIZE,
+        APP_PRIO_NORMAL,
+        NULL
+    );
+
+    if (result != SAL_RET_SUCCESS)
+    {
+        UART_Close(PED_FLAG_UART_CH);
+        mcu_printf("PedFlag: RX task create failed: %d\n", (sint32)result);
+        return;
+    }
 
     mcu_printf("PedFlag: UART_CH0 opened (interrupt mode), LED test on GPIO_GPC(1)\n");
 }
