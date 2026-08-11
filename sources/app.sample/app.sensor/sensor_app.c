@@ -162,7 +162,7 @@ static uint8_t Sensor_GetTurnSignal(void)
  * 현재 센싱 시각을 12bit timestamp로 변환한다.
  *
  * SAL tick은 ms 기준으로 사용하고,
- * Protocol timestamp의 1 LSB는 10ms로 정의한다.
+ * Protocol timestamp의 1 LSB는 1ms로 정의한다.
  */
 static uint16_t Sensor_GetTimestamp(void)
 {

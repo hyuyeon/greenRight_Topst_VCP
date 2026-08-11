@@ -16,6 +16,12 @@
  */
 #define TIME_SYNC_TASK_PERIOD_MS              (100UL)
 
+/*
+ * 정상 Sync Frame이 이 시간 동안 수신되지 않으면 동기화를 해제한다.
+ */
+#define TIME_SYNC_WATCHDOG_TIMEOUT_MS          (500UL)
+
+
 
 /*
  * |시간 오차| <= 50ms
@@ -73,6 +79,12 @@ typedef struct
      * D3-G 시각과 VCP-G 시각의 차이
      */
     int64_t lastDiffMs;
+
+
+    /*
+     * 마지막 정상 Sync Frame을 수신한 SAL monotonic tick
+     */
+    uint32 lastValidSyncTickMs;
 
 
     /*
@@ -237,6 +249,7 @@ static void TimeSync_Reset(void)
     gTimeSync.currentOffsetMs = 0LL;
     gTimeSync.targetOffsetMs  = 0LL;
     gTimeSync.lastDiffMs      = 0LL;
+    gTimeSync.lastValidSyncTickMs = 0UL;
     gTimeSync.timeSynced      = FALSE;
 
 
@@ -250,7 +263,22 @@ static void TimeSync_Reset(void)
  */
 static void TimeSync_Process(void)
 {
+    uint64_t ullMonotonicMs;
+    uint32 uiCurrentTickMs;
+    uint32 uiElapsedMs;
+
     int64_t llOffsetDiffMs;
+
+
+    if (TimeSync_GetMonotonicMs(
+            &ullMonotonicMs) == FALSE)
+    {
+        return;
+    }
+
+
+    uiCurrentTickMs =
+        (uint32)ullMonotonicMs;
 
 
     (void)SAL_CoreCriticalEnter();
@@ -258,6 +286,22 @@ static void TimeSync_Process(void)
 
     if (gTimeSync.timeSynced == FALSE)
     {
+        (void)SAL_CoreCriticalExit();
+
+        return;
+    }
+
+
+    uiElapsedMs =
+        uiCurrentTickMs -
+        gTimeSync.lastValidSyncTickMs;
+
+
+    if (uiElapsedMs >= TIME_SYNC_WATCHDOG_TIMEOUT_MS)
+    {
+        /* Sync Frame 수신 중단: 현재 논리 시각을 더 이상 유효하게 보지 않는다. */
+        gTimeSync.timeSynced = FALSE;
+
         (void)SAL_CoreCriticalExit();
 
         return;
@@ -391,6 +435,10 @@ uint8_t TimeSync_OnSyncFrame(
 
 
     (void)SAL_CoreCriticalEnter();
+
+    /* 정상 Sync Frame을 받을 때마다 Watchdog 기준 시각을 갱신한다. */
+    gTimeSync.lastValidSyncTickMs =
+        (uint32)ullMonotonicMs;
 
 
     /* =====================================================
