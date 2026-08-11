@@ -480,7 +480,10 @@ static void BuildRightTurnDecision(
         return;
     }
 
-    (void)memset(decision, 0, sizeof(Dicision));
+    /*
+     * TurnJudgeTask initializes decision before this call. Preserve
+     * caller-provided state such as dataStatus while adding right-turn flags.
+     */
 
     decision->turnState = MANEUVER_RIGHT_TURN;
 
@@ -687,7 +690,10 @@ static void BuildLeftTurnDecision(
         return;
     }
 
-    (void)memset(decision, 0, sizeof(Dicision));
+    /*
+     * TurnJudgeTask initializes decision before this call. Preserve
+     * caller-provided state such as dataStatus while adding left-turn flags.
+     */
 
     decision->turnState = MANEUVER_LEFT_TURN_UNPROT;
 
