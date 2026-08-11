@@ -61,6 +61,11 @@ ifeq ($(MCU_BSP_BUILD_FLAGS_APP_BUZZER), 1)
     include $(MCU_BSP_APP_SAMPLE_PATH)/app.buzzer/rules.mk
 endif
 
+# TIME SYNC Application
+ifeq ($(MCU_BSP_BUILD_FLAGS_APP_TIME_SYNC), 1)
+include $(MCU_BSP_APP_SAMPLE_PATH)/app.time_sync/rules.mk
+endif
+
 # CAN Test Application
 ifeq ($(MCU_BSP_BUILD_FLAGS_TEST_APP_CAN), 1)
     include $(MCU_BSP_APP_SAMPLE_PATH)/test.app.can/rules.mk

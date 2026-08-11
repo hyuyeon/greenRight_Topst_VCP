@@ -18,6 +18,7 @@
 #include "display_task.h"
 #include "turnJudgeTask.h"
 #include "app_priority_cfg.h"
+#include "time_sync.h"
 
 #define CAN_DEMO_FRAME_SIZE                 (8U)
 #define CAN_DEMO_MSG_ID_SHIFT               (60U)
@@ -25,6 +26,7 @@
 #define CAN_DEMO_TIMESTAMP_MASK             (0x0FFFU)
 
 #define CAN_DEMO_MSG_EGO_STATUS             (0x0U)
+#define CAN_DEMO_MSG_TIME_SYNC              (0x2U)
 #define CAN_DEMO_MSG_CANDIDATE_INTRO        (0x4U)
 #define CAN_DEMO_MSG_CANDIDATE_STATUS       (0x5U)
 #define CAN_DEMO_MSG_TRAFFIC_LIGHT          (0x6U)
@@ -152,6 +154,47 @@ static uint8 CAN_DemoIsTrafficLightTypeValid
     }
 
     return ucValid;
+}
+
+static uint8 CAN_DemoHandleTimeSync
+(
+    uint64_t                            ullFrame
+)
+{
+    uint16 usTimestamp;
+    uint64_t ullSyncEpochMs;
+    uint8 ucSyncStatus;
+
+    usTimestamp =
+        ( uint16 )
+        ( ( ullFrame >> CAN_DEMO_TIMESTAMP_SHIFT ) &
+          CAN_DEMO_TIMESTAMP_MASK );
+
+    ullSyncEpochMs =
+        ( uint64_t )
+        ( ( ullFrame >> 8U ) &
+          0xFFFFFFFFFFULL );
+
+    ucSyncStatus =
+        ( uint8 )
+        ( ullFrame & 0xFFULL );
+
+    /*
+     * Time Sync Frame의 Header timestamp는
+     * sync_epoch_ms의 하위 12bit와 동일해야 한다.
+     */
+    if( usTimestamp !=
+        ( uint16 )( ullSyncEpochMs &
+                    CAN_DEMO_TIMESTAMP_MASK ) )
+    {
+        return FALSE;
+    }
+
+    return TimeSync_OnSyncFrame
+    (
+        ullSyncEpochMs,
+        ucSyncStatus
+    );
 }
 
 static uint8 CAN_DemoHandleCandidateIntro
@@ -315,6 +358,16 @@ static void CAN_DemoHandleRxMessage
 
     switch( ucMessageId )
     {
+        case CAN_DEMO_MSG_TIME_SYNC:
+        {
+            ucHandled =
+                CAN_DemoHandleTimeSync
+                (
+                    ullFrame
+                );
+
+            break;
+        }
         case CAN_DEMO_MSG_CANDIDATE_INTRO:
         {
             ucHandled = CAN_DemoHandleCandidateIntro( ullFrame );

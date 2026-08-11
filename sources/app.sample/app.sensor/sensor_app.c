@@ -32,12 +32,13 @@
 #include <app_cfg.h>
 #include <debug.h>
 #include <math.h>
+#include "time_sync.h"
 
 #define SENSOR_UPDATE_PERIOD_MS   20U
 #define LED_BLINK_PERIOD_MS      500U
 
-#define EGO_TIMESTAMP_UNIT_MS     10U
-#define EGO_TIMESTAMP_MASK        0x0FFFU
+// #define EGO_TIMESTAMP_UNIT_MS     10U
+// #define EGO_TIMESTAMP_MASK        0x0FFFU
 
 State_t state = IDLE;
 
@@ -165,18 +166,20 @@ static uint8_t Sensor_GetTurnSignal(void)
  */
 static uint16_t Sensor_GetTimestamp(void)
 {
-    uint32 tick_ms = 0U;
+    uint16 usTimestamp12;
 
-    if (SAL_GetTickCount(&tick_ms) !=
-        SAL_RET_SUCCESS)
+    usTimestamp12 = 0U;
+
+    if( TimeSync_GetTimestamp12(
+            &usTimestamp12 ) == FALSE )
     {
         return 0U;
     }
 
-    return (uint16_t)(
-        (tick_ms / EGO_TIMESTAMP_UNIT_MS) &
-        EGO_TIMESTAMP_MASK);
+    return usTimestamp12;
 }
+
+
 
 
 /*
@@ -700,6 +703,8 @@ static void Sensor_Task(void *pArg)
                 (int)Position_GetXcm(),
                 (int)Position_GetYcm(),
                 (int)Position_GetTotalDistanceCm());
+                //Time Sync Debug
+                TimeSync_PrintCurrentTime();
         }
 
         SAL_TaskSleep(

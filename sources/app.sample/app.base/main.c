@@ -31,6 +31,7 @@
 #include "lcd.h"
 #include "display_task.h"
 #include "turnJudgeTask.h"
+#include "time_sync.h"
 
 #if ( MCU_BSP_SUPPORT_APP_PED_FLAG == 1 )
     #include "ped_flag_isr.h"
@@ -251,6 +252,10 @@ static void AppTaskCreate(void)
 
 #if ( MCU_BSP_SUPPORT_APP_PED_FLAG == 1 )
     PedFlag_Init();
+#endif
+
+#if ( MCU_BSP_SUPPORT_APP_TIME_SYNC == 1 )
+    TimeSync_AppCreate();
 #endif
 
 #if ( MCU_BSP_SUPPORT_CAN_DEMO == 1 )
