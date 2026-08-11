@@ -915,6 +915,8 @@ static void TurnJudgeTask(void *pArg)
         else
         {
             CandidateVehicle candidateForDecision = candidateSnapshot;
+            uint16_t latencyMs = 0U;
+            uint8_t hasLatencyMeasurement = 0U;
 
             //실제로 candidate가 있다면 freshness 체크를 한다
             if ((candidateSnapshot.type != CAND_NONE) &&
@@ -923,7 +925,6 @@ static void TurnJudgeTask(void *pArg)
                 uint64_t currentTimeMs;
                 uint16_t currentTimestamp;
                 uint16_t sourceTimestamp;
-                uint8_t isFresh;
 
                 currentTimeMs = TimeSync_GetCurrentTimeMs();
                 currentTimestamp = (uint16_t)(
@@ -934,19 +935,25 @@ static void TurnJudgeTask(void *pArg)
                     TEMPORAL_QOS_TIMESTAMP_MASK
                 );
 
-
-                //end to end latency 출력
-                TemporalQos_PrintEndToEndLatency(currentTimestamp, sourceTimestamp);
-
-                //freshness 체크
-                isFresh = TemporalQos_CheckFreshness(
+                latencyMs = TemporalQos_CalculateAgeMs(
                     currentTimestamp,
                     sourceTimestamp
                 );
+                hasLatencyMeasurement = 1U;
 
-                //stale 데이터라면 해당 데이터로 판단 진행 안하기 위해 CAND_NONE 처리 그리고 stale data임을 표시
-                if (isFresh == 0U)
+                //freshness 체크
+                if (latencyMs <= TEMPORAL_QOS_FRESHNESS_LIMIT_MS)
                 {
+                    //fresh 데이터라면 지연 보상 적용
+                    TemporalQos_CompensateLatency(
+                        &candidateSnapshot,
+                        &candidateForDecision,
+                        latencyMs
+                    );
+                }
+                else
+                {
+                    //stale 데이터라면 해당 데이터로 판단 진행 안하기 위해 CAND_NONE 처리 그리고 stale data임을 표시
                     candidateForDecision.type = CAND_NONE;
                     decision.dataStatus |= DECISION_DATA_STATUS_STALE;
                 }
@@ -1002,6 +1009,15 @@ static void TurnJudgeTask(void *pArg)
                     shouldPost = 0U;
                     break;
                 }
+            }
+
+            /* UART 출력으로 판단 경로를 지연시키지 않도록 판단 후 출력한다. */
+            if (hasLatencyMeasurement != 0U)
+            {
+                mcu_printf(
+                    "[QoS] End-to-End latency: %u ms\r\n",
+                    (unsigned int)latencyMs
+                );
             }
         }
 
