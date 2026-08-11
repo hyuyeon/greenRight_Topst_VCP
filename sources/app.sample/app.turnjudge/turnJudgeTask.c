@@ -915,18 +915,25 @@ static void TurnJudgeTask(void *pArg)
         else
         {
             CandidateVehicle candidateForDecision = candidateSnapshot;
+            uint64_t currentTimeMs;
             uint16_t latencyMs = 0U;
             uint8_t hasLatencyMeasurement = 0U;
 
-            //실제로 candidate가 있다면 freshness 체크를 한다
-            if ((candidateSnapshot.type != CAND_NONE) &&
-                (candidateSnapshot.type != CAND_COMM_ERROR))
+            //시간 동기화가 되고 있는지 확인
+            if (TimeSync_GetCurrentMs(&currentTimeMs) == FALSE)
             {
-                uint64_t currentTimeMs;
+                /* 기준 시각이 없으면 candidate를 판단에서 제외한다. */
+                candidateForDecision.type = CAND_NONE;
+                decision.dataStatus |=
+                    DECISION_DATA_STATUS_TIME_SYNC_ERROR;
+            }
+            /* 실제로 candidate가 있다면 freshness 체크를 한다. */
+            else if ((candidateSnapshot.type != CAND_NONE) &&
+                     (candidateSnapshot.type != CAND_COMM_ERROR))
+            {
                 uint16_t currentTimestamp;
                 uint16_t sourceTimestamp;
 
-                currentTimeMs = TimeSync_GetCurrentTimeMs();
                 currentTimestamp = (uint16_t)(
                     currentTimeMs & TEMPORAL_QOS_TIMESTAMP_MASK
                 );

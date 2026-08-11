@@ -53,6 +53,7 @@ typedef struct {
 #define DECISION_DATA_STATUS_OK                (0x00U) /* Data is valid */
 #define DECISION_DATA_STATUS_MQTT_COMM_ERROR   (0x01U) /* bit0: MQTT communication failure */
 #define DECISION_DATA_STATUS_STALE             (0x02U) /* bit1: Candidate data exceeded freshness limit */
+#define DECISION_DATA_STATUS_TIME_SYNC_ERROR   (0x04U) /* bit2: Synchronized time is unavailable */
 
 typedef struct{
   uint8_t turnState; //0: straight, 1: right turn, 2/3: left turn
