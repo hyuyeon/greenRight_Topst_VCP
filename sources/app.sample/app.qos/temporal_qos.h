@@ -16,4 +16,8 @@ uint8_t TemporalQos_CheckFreshness(
     uint16_t sourceTimestamp
 );
 
+void TemporalQos_PrintEndToEndLatency(
+    uint16_t currentTimestamp,
+    uint16_t sourceTimestamp
+);
 #endif /* TEMPORAL_QOS_H */

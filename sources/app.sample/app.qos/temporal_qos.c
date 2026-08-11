@@ -1,4 +1,5 @@
 #include "temporal_qos.h"
+#include <debug.h>
 
 //현재 동기화 시각의 하위 12 bit랑 sourceTimestamp(원래 12 bit)를 비교해서 age를 구함
 uint16_t TemporalQos_CalculateAgeMs(
@@ -28,4 +29,22 @@ uint8_t TemporalQos_CheckFreshness(
     return (ageMs <= TEMPORAL_QOS_FRESHNESS_LIMIT_MS)
         ? 1U
         : 0U;
+}
+
+
+void TemporalQos_PrintEndToEndLatency(
+    uint16_t currentTimestamp,
+    uint16_t sourceTimestamp)
+{
+    uint16_t latencyMs;
+
+    latencyMs = TemporalQos_CalculateAgeMs(
+        currentTimestamp,
+        sourceTimestamp
+    );
+
+    mcu_printf(
+        "[QoS] End-to-End latency: %u ms\r\n",
+        (unsigned int)latencyMs
+    );
 }

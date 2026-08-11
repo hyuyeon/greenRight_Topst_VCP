@@ -13,7 +13,6 @@
 #include "ttc.h"
 #include "turnJudgeLog.h"
 #include "app_priority_cfg.h"
-#include "temporal_qos.h"
 #include "time_sync.h"
 #include "temporal_qos.h"
 
@@ -934,6 +933,10 @@ static void TurnJudgeTask(void *pArg)
                     candidateSnapshot.timestamp_ms &
                     TEMPORAL_QOS_TIMESTAMP_MASK
                 );
+
+
+                //end to end latency 출력
+                TemporalQos_PrintEndToEndLatency(currentTimestamp, sourceTimestamp);
 
                 //freshness 체크
                 isFresh = TemporalQos_CheckFreshness(
