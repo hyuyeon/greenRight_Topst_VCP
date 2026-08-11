@@ -20,8 +20,8 @@
  * D3-G NTP Sync Status
  */
 #define TIME_SYNC_STATUS_OK              (0x00U)
-#define TIME_SYNC_STATUS_UNSYNCED        (0x01U)
-#define TIME_SYNC_STATUS_ERROR           (0x80U)
+#define TIME_SYNC_STATUS_RTC_ONLY        (0x01U)
+#define TIME_SYNC_STATUS_NONE            (0x02U)
 
 
 /* =========================================================
