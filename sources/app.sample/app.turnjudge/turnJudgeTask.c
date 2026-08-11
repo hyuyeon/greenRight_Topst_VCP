@@ -761,6 +761,11 @@ static uint8_t TurnJudge_IsSameDecision(
         return 0U;
     }
 
+    if (left->dataStatus != right->dataStatus)
+    {
+        return 0U;
+    }
+
     if (left->pedestrianFlag != right->pedestrianFlag)
     {
         return 0U;
@@ -887,6 +892,8 @@ static void TurnJudgeTask(void *pArg)
         );
 
         shouldPost = 1U;
+        decision.turnState = maneuverSnapshot;
+        decision.dataStatus = DECISION_DATA_STATUS_OK;
 
         /*
          * 통신 오류가 있으면 LCD 통신 오류 화면으로 전달.
@@ -894,11 +901,18 @@ static void TurnJudgeTask(void *pArg)
         if ((candidateSnapshot.type == CAND_COMM_ERROR) ||
             (trafficLightSnapshot.type == TL_COMM_ERROR))
         {
-            decision.turnState = 255U;
+            decision.dataStatus |= DECISION_DATA_STATUS_MQTT_COMM_ERROR;
             decision.pedestrianFlag = pedestrianSnapshot;
         }
         else
         {
+            //실제로 candidate가 있다면 freshness 체크를 한다
+            if ((candidateSnapshot.type != CAND_NONE) &&
+            (candidateSnapshot.type != CAND_COMM_ERROR)){
+
+            }
+
+            //candidate가 있든 없든 maneuver에 따른 판단을 수행
             switch (maneuverSnapshot)
             {
                 case MANEUVER_STRAIGHT:

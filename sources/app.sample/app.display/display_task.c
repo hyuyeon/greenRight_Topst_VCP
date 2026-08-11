@@ -59,11 +59,21 @@ static void Display_UnlockLcd(void)
     }
 }
 
-static TurnDirection Dicision_ToTurnDirection(uint8_t turnState)
+static TurnDirection Dicision_ToTurnDirection(const Dicision *decision)
 {
     TurnDirection direction;
 
-    switch (turnState)
+    if (decision == NULL)
+    {
+        return DIR_ERROR;
+    }
+
+    if ((decision->dataStatus & DECISION_DATA_STATUS_MQTT_COMM_ERROR) != 0U)
+    {
+        return DIR_ERROR;
+    }
+
+    switch (decision->turnState)
     {
         case MANEUVER_RIGHT_TURN:
             direction = DIR_RIGHT;
@@ -72,10 +82,6 @@ static TurnDirection Dicision_ToTurnDirection(uint8_t turnState)
         case MANEUVER_LEFT_TURN_UNPROT:
         case MANEUVER_LEFT_TURN_PROT:
             direction = DIR_LEFT;
-            break;
-
-        case 255U:
-            direction = DIR_ERROR;
             break;
 
         case MANEUVER_STRAIGHT:
@@ -94,6 +100,11 @@ static uint8_t Dicision_ToWarningMask(const Dicision *decision)
     if (decision == NULL)
     {
         return WARN_COMM_ERROR;
+    }
+
+    if ((decision->dataStatus & DECISION_DATA_STATUS_MQTT_COMM_ERROR) != 0U)
+    {
+        mask |= WARN_COMM_ERROR;
     }
 
     /*
@@ -151,10 +162,6 @@ static uint8_t Dicision_ToWarningMask(const Dicision *decision)
             {
                 mask |= WARN_OPPOSITE_TURN;
             }
-            break;
-
-        case 255U:
-            mask |= WARN_COMM_ERROR;
             break;
 
         case MANEUVER_STRAIGHT:
@@ -256,7 +263,7 @@ static void DicisionDisplayTask(void *pArg)
                 &decision,
                 portMAX_DELAY) == pdTRUE)
         {
-            direction = Dicision_ToTurnDirection(decision.turnState);
+            direction = Dicision_ToTurnDirection(&decision);
             warningMask = Dicision_ToWarningMask(&decision);
 
             Display_LockLcd();

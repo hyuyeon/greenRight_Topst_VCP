@@ -48,13 +48,16 @@ typedef struct {
     uint64_t received_timestamp; //local tick when the message was received
 } TrafficLight;
 
+#define DECISION_DATA_STATUS_OK                (0x00U)
+#define DECISION_DATA_STATUS_MQTT_COMM_ERROR   (0x01U)
 
 typedef struct{
-  uint8_t turnState; //0: straight, 1: right turn, 2: left turn,255: mqtt comm fail
+  uint8_t turnState; //0: straight, 1: right turn, 2/3: left turn
+  uint8_t dataStatus; //bit0: MQTT communication error
+
   //on right turn situation
 	uint8_t pedestrianFlag; //0: no pedestrian, 1: pedestrian, 2 : AI error
   //flags : 0 = false, 1 = true
-  //on right turn situation
 	uint8_t LStraightFlag; //is left side straight vehicle exist?
 	uint8_t OppLeftFlag;   //is opposite left turn vehicle exist?
   //on left turn situation
@@ -98,4 +101,4 @@ extern TrafficLight tl;
 extern uint8_t maneuver;
 extern volatile uint8_t pedFlag;
 
-#endif /* COMMON_H */ 
+#endif /* COMMON_H */

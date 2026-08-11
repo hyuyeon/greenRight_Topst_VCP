@@ -60,7 +60,7 @@ static sint32 TurnJudgeLog_SecondsToMs(double seconds)
 
 static uint8_t TurnJudgeLog_HasWarning(const Dicision *decision)
 {
-    if ((decision->turnState == 255U) ||
+    if (((decision->dataStatus & DECISION_DATA_STATUS_MQTT_COMM_ERROR) != 0U) ||
         (decision->pedestrianFlag != 0U) ||
         (decision->LStraightFlag != 0U) ||
         (decision->OppLeftFlag != 0U) ||
@@ -120,12 +120,13 @@ static const TurnJudgeResult *TurnJudgeLog_SelectResult(
         }
     }
 
-    if ((decision->turnState == 255U) || (decision->pedestrianFlag != 0U))
+    if (((decision->dataStatus & DECISION_DATA_STATUS_MQTT_COMM_ERROR) != 0U) ||
+        (decision->pedestrianFlag != 0U))
     {
         *specialResult = TurnJudgeLog_MakeResult(TURN_JUDGE_CASE_COUNT);
         specialResult->warning = 1U;
 
-        if (decision->turnState == 255U)
+        if ((decision->dataStatus & DECISION_DATA_STATUS_MQTT_COMM_ERROR) != 0U)
         {
             specialResult->reason = TURN_JUDGE_REASON_COMM_ERROR;
         }
