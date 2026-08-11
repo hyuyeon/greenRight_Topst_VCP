@@ -21,6 +21,7 @@ typedef struct {
 
 typedef struct {
 	uint8_t type; //if its 0, no candidate vehicle.
+  //if its 0x80U,mqtt 통신 에러.
 	//1: ego vehicle right turn vs opposite straight
   //2: ego vehicle right turn vs opposite left turn[protected]
   //4: ego vehicle left turn[unprotected] vs opposite straight
@@ -48,12 +49,14 @@ typedef struct {
     uint64_t received_timestamp; //local tick when the message was received
 } TrafficLight;
 
-#define DECISION_DATA_STATUS_OK                (0x00U)
-#define DECISION_DATA_STATUS_MQTT_COMM_ERROR   (0x01U)
+/* Dicision.dataStatus bit flags */
+#define DECISION_DATA_STATUS_OK                (0x00U) /* Data is valid */
+#define DECISION_DATA_STATUS_MQTT_COMM_ERROR   (0x01U) /* bit0: MQTT communication failure */
+#define DECISION_DATA_STATUS_STALE             (0x02U) /* bit1: Candidate data exceeded freshness limit */
 
 typedef struct{
   uint8_t turnState; //0: straight, 1: right turn, 2/3: left turn
-  uint8_t dataStatus; //bit0: MQTT communication error
+  uint8_t dataStatus; //bit mask composed of DECISION_DATA_STATUS_* values
 
   //on right turn situation
 	uint8_t pedestrianFlag; //0: no pedestrian, 1: pedestrian, 2 : AI error

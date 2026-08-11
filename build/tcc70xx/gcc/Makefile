@@ -107,6 +107,7 @@ MCU_BSP_BUILD_FLAGS_APP_BUZZER              ?= 1
 MCU_BSP_BUILD_FLAGS_APP_DISPLAY             ?= 1
 MCU_BSP_BUILD_FLAGS_APP_TURN_JUDGE          ?= 1
 MCU_BSP_BUILD_FLAGS_APP_PED_FLAG            ?= 1
+MCU_BSP_BUILD_FLAGS_APP_QOS                 ?= 1
 
 # Test Application Build Flags
 MCU_BSP_BUILD_FLAGS_TEST_APP_CAN            ?= 0
@@ -499,4 +500,3 @@ $(MCU_BSP_BUILD_OBJS_PATH)/%.o : %.S
 $(MCU_BSP_BUILD_OBJS_PATH)/%.o : %.c
 	@echo compile: $< | tee -a $(COMPILE_SCRIPT_SAVE_PATH)
 	$(MCU_BSP_BUILD_QUIET)$(CC) -c $(CFLAGS) -o $@ $<
-

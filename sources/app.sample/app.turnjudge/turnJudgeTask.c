@@ -13,6 +13,9 @@
 #include "ttc.h"
 #include "turnJudgeLog.h"
 #include "app_priority_cfg.h"
+#include "temporal_qos.h"
+#include "time_sync.h"
+#include "temporal_qos.h"
 
 #if (MCU_BSP_SUPPORT_APP_BUZZER == 1)
 #include "buzzerTask.h"
@@ -906,10 +909,38 @@ static void TurnJudgeTask(void *pArg)
         }
         else
         {
+            CandidateVehicle candidateForDecision = candidateSnapshot;
+
             //실제로 candidate가 있다면 freshness 체크를 한다
             if ((candidateSnapshot.type != CAND_NONE) &&
-            (candidateSnapshot.type != CAND_COMM_ERROR)){
+                (candidateSnapshot.type != CAND_COMM_ERROR))
+            {
+                uint64_t currentTimeMs;
+                uint16_t currentTimestamp;
+                uint16_t sourceTimestamp;
+                uint8_t isFresh;
 
+                currentTimeMs = TimeSync_GetCurrentTimeMs();
+                currentTimestamp = (uint16_t)(
+                    currentTimeMs & TEMPORAL_QOS_TIMESTAMP_MASK
+                );
+                sourceTimestamp = (uint16_t)(
+                    candidateSnapshot.timestamp_ms &
+                    TEMPORAL_QOS_TIMESTAMP_MASK
+                );
+
+                //freshness 체크
+                isFresh = TemporalQos_CheckFreshness(
+                    currentTimestamp,
+                    sourceTimestamp
+                );
+
+                //stale 데이터라면 해당 데이터로 판단 진행 안하기 위해 CAND_NONE 처리 그리고 stale data임을 표시
+                if (isFresh == 0U)
+                {
+                    candidateForDecision.type = CAND_NONE;
+                    decision.dataStatus |= DECISION_DATA_STATUS_STALE;
+                }
             }
 
             //candidate가 있든 없든 maneuver에 따른 판단을 수행
@@ -927,7 +958,7 @@ static void TurnJudgeTask(void *pArg)
                         &decision,
                         pedestrianSnapshot,
                         &egoSnapshot,
-                        &candidateSnapshot,
+                        &candidateForDecision,
                         &trafficLightSnapshot,
                         &logContext
                     );
@@ -939,7 +970,7 @@ static void TurnJudgeTask(void *pArg)
                     BuildLeftTurnDecision(
                         &decision,
                         &egoSnapshot,
-                        &candidateSnapshot,
+                        &candidateForDecision,
                         &trafficLightSnapshot,
                         &logContext
                     );
