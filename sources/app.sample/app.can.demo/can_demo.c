@@ -414,16 +414,16 @@ static void CAN_DemoCallbackTxEvent
 
 static void CAN_DemoCallbackRxEvent
 (
-    uint8                               ucCh,
-    uint32                              uiRxIndex,
-    CANMessageBufferType_t              uiRxBufferType,
-    CANErrorType_t                      uiError
+    uint8 ucCh,
+    uint32 uiRxIndex,
+    CANMessageBufferType_t uiRxBufferType,
+    CANErrorType_t uiError
 )
 {
     ( void )uiRxIndex;
     ( void )uiRxBufferType;
 
-    if( ucCh < CAN_CONTROLLER_NUMBER )
+    if( ucCh == CAN_DEMO_RX_CHANNEL )
     {
         gCanDemoRxCallbackCount[ucCh]++;
 
@@ -435,9 +435,10 @@ static void CAN_DemoCallbackRxEvent
 
         if( gCanDemoRxEventCreated == TRUE )
         {
-            ( void )SAL_EventSet( gCanDemoRxEvent,
-                                  CAN_DEMO_RX_EVENT( ucCh ),
-                                  SAL_EVENT_OPT_FLAG_SET );
+            ( void )SAL_EventSet(
+                gCanDemoRxEvent,
+                CAN_DEMO_RX_EVENT( ucCh ),
+                SAL_EVENT_OPT_FLAG_SET );
         }
     }
 }
@@ -448,7 +449,7 @@ static void CAN_DemoCallbackErrorEvent
     CANErrorType_t                      uiError
 )
 {
-    if( ucCh < CAN_CONTROLLER_NUMBER )
+    if( ucCh == CAN_DEMO_RX_CHANNEL )
     {
         gCanDemoRxLastError[ucCh] = ( uint32 )uiError;
 
@@ -492,6 +493,18 @@ static void CAN_DemoDrainRx
         for( uiBatchIndex = 0UL; uiBatchIndex < uiBatchCount; uiBatchIndex++ )
         {
             psRxMsg = &gCanDemoRxBatch[ucCh][uiBatchIndex];
+
+            /*
+            * VCP가 송신한 Ego Status(MSG 0x0)가
+            * 다른 CAN 채널로 다시 수신되는 경우 무시한다.
+            */
+            if( ( psRxMsg->mDataLength == CAN_DEMO_FRAME_SIZE ) &&
+                ( ( ( psRxMsg->mData[0] >> 4U ) & 0x0FU ) ==
+                CAN_DEMO_MSG_EGO_STATUS ) )
+            {
+                continue;
+            }
+
             gCanDemoRxCount[ucCh]++;
             gCanDemoLastRxId = psRxMsg->mId;
 
@@ -642,9 +655,9 @@ static void CAN_DemoTxTask
     CANMessage_t sTxMsg;
     CANErrorType_t eResult;
     uint8 ucTxBufferIndex;
-#if ( CAN_DEMO_FRAME_LOG_ENABLE == 1U )
-    uint8 ucDataIndex;
-#endif
+// #if ( CAN_DEMO_FRAME_LOG_ENABLE == 1U )
+//     uint8 ucDataIndex;
+// #endif
 
     ( void )pArg;
     ( void )SAL_MemSet( &sTxMsg, 0, sizeof( sTxMsg ) );
@@ -683,7 +696,7 @@ static void CAN_DemoTxTask
                                                0UL,
                                                SAL_OPT_BLOCKING );
                 }
-
+                /*
                 mcu_printf( "[CAN TX] CH%d SEQ:%d ID:0x%X MSG:%04d TS:%d DATA:",
                             CAN_DEMO_TX_CHANNEL,
                             ( unsigned long )gCanDemoTxRequestCount,
@@ -698,7 +711,7 @@ static void CAN_DemoTxTask
                     mcu_printf( " %02X", sTxMsg.mData[ucDataIndex] );
                 }
                 mcu_printf( "\n" );
-
+                */
                 if( gCanDemoLogLockCreated == TRUE )
                 {
                     ( void )SAL_SemaphoreRelease( gCanDemoLogLock );
@@ -720,25 +733,22 @@ static void CAN_DemoRxTask
     void *                              pArg
 )
 {
-    uint8 ucCh;
+    // uint8 ucCh;
     uint32 uiEventFlags;
 
     ( void )pArg;
 
-    mcu_printf( "[VCP CAN] Init=%s RX=MSG[4,5,6] TX=CH%d/ID0x%X/MSG0000/%dms\n",
-                ( gCanDemoInitResult == 0 ) ? "OK" : "FAIL",
-                CAN_DEMO_TX_CHANNEL,
-                ( unsigned long )CAN_DEMO_TX_ID,
-                ( unsigned long )CAN_DEMO_TX_PERIOD_MS );
+    // mcu_printf( "[VCP CAN] Init=%s RX=MSG[4,5,6] TX=CH%d/ID0x%X/MSG0000/%dms\n",
+    //             ( gCanDemoInitResult == 0 ) ? "OK" : "FAIL",
+    //             CAN_DEMO_TX_CHANNEL,
+    //             ( unsigned long )CAN_DEMO_TX_ID,
+    //             ( unsigned long )CAN_DEMO_TX_PERIOD_MS );
 
     while( 1 )
     {
         if( gCanDemoRxEnabled == TRUE )
         {
-            for( ucCh = 0U; ucCh < CAN_CONTROLLER_NUMBER; ucCh++ )
-            {
-                CAN_DemoDrainRx( ucCh );
-            }
+            CAN_DemoDrainRx( CAN_DEMO_RX_CHANNEL );
         }
 
         if( gCanDemoRxEventCreated == TRUE )
