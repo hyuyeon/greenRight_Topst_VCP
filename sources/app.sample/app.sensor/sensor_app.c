@@ -255,7 +255,7 @@ static void Sensor_Task(void *pArg)
     int32_t current_heading_x100 = 0;
 
     uint8_t heading_valid = 0U;
-    uint8_t bno_read_ok = 0U;
+    uint8_t bno_read_ok = 1U;
     uint8_t zero_count = 0U;
 
     (void)pArg;
@@ -488,18 +488,18 @@ static void Sensor_Task(void *pArg)
          */
         if (bno_read_ok != 0U)
         {
-            mcu_printf(
-                "[BNO055] "
-                "heading=%d.%02d deg "
-                "(raw=%d) "
-                "x=%d cm y=%d cm\n",
-                filtered_heading_x100 / 100,
-                (filtered_heading_x100 < 0
-                    ? -filtered_heading_x100
-                    : filtered_heading_x100) % 100,
-                (int)raw_heading_x100,
-                (int)Position_GetXcm(),
-                (int)Position_GetYcm());
+            // mcu_printf(
+            //     "[BNO055] "
+            //     "heading=%d.%02d deg "
+            //     "(raw=%d) "
+            //     "x=%d cm y=%d cm\n",
+            //     filtered_heading_x100 / 100,
+            //     (filtered_heading_x100 < 0
+            //         ? -filtered_heading_x100
+            //         : filtered_heading_x100) % 100,
+            //     (int)raw_heading_x100,
+            //     (int)Position_GetXcm(),
+            //     (int)Position_GetYcm());
         }
 
         /*

@@ -21,13 +21,19 @@
 #ifndef APP_PRIORITY_CFG_H
 #define APP_PRIORITY_CFG_H
 
-/* High         : TurnJudgeTask - TTC 계산 및 우회전/비보호좌회전 판단 (gTurnJudgeSem) */
-#define APP_PRIO_TURN_JUDGE      (2U)
+/* Highest      : CanTxTask - 20ms 주기 Ego 상태 송신 */
+#define APP_PRIO_CAN_TX          (2U)
 
-/* Above Normal : DicisionDisplayTask - LCD 방향/경고 표시 갱신 (gDicisionQueue) */
-#define APP_PRIO_DECISION_DISP   (3U)
+/* High         : CanRxTask - 수신 프레임 배출 및 파싱 */
+#define APP_PRIO_CAN_RX          (3U)
 
-/* Normal       : CanRxTask/CanTxTask, PedFlagRxTask, TlDisplayTask, SensorTask
+/* Normal       : TurnJudgeTask - TTC 계산 및 우회전/비보호좌회전 판단 (gTurnJudgeSem) */
+#define APP_PRIO_TURN_JUDGE      (4U)
+
+/* Below Normal : DicisionDisplayTask - LCD 방향/경고 표시 갱신 (gDicisionQueue) */
+#define APP_PRIO_DECISION_DISP   (5U)
+
+/* Normal       : PedFlagRxTask, TlDisplayTask, SensorTask
  *                (TurnJudgeTask를 직접 깨우거나(notify), 주기적으로 상태만 갱신하는 태스크들) */
 #define APP_PRIO_NORMAL          (4U)
 

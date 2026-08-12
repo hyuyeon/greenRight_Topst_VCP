@@ -4,6 +4,8 @@
 
 #include <app_cfg.h>
 #include <stdio.h>
+#include <FreeRTOS.h>
+#include <task.h>
 
 #include "bsp.h"
 #include "gpio.h"
@@ -30,6 +32,7 @@
 #define CAN_DEMO_MSG_CANDIDATE_INTRO        (0x4U)
 #define CAN_DEMO_MSG_CANDIDATE_STATUS       (0x5U)
 #define CAN_DEMO_MSG_TRAFFIC_LIGHT          (0x6U)
+#define CAN_DEMO_TX_GAP_WARN_MS              (300UL)
 
 
 
@@ -52,13 +55,23 @@ static volatile uint32 gCanDemoRxUnknownCount;
 static volatile uint32 gCanDemoTxRequestCount;
 static volatile uint32 gCanDemoTxCompleteCount;
 static volatile uint32 gCanDemoTxErrorCount;
+static volatile uint32 gCanDemoTxLastError;
+static volatile uint32 gCanDemoTxTaskMaxGapMs;
+static volatile uint32 gCanDemoTxTaskOver300Count;
+static volatile uint32 gCanDemoTxDoneMaxGapMs;
+static volatile uint32 gCanDemoTxDoneOver300Count;
+static volatile TickType_t gCanDemoTxDonePreviousTick;
+static volatile uint8 gCanDemoTxDoneTickValid;
 static volatile uint32 gCanDemoLastRxId;
 static volatile uint32 gCanDemoLastTxId;
 
 static CANMessage_t gCanDemoRxBatch[CAN_CONTROLLER_NUMBER][CAN_DEMO_RX_BATCH_MAX];
+static uint32 gCanDemoStatusTaskID;
+static uint32 gCanDemoStatusTaskStk[CAN_DEMO_TX_TASK_STK_SIZE];
 
 static void CAN_DemoRxTask(void *pArg);
 static void CAN_DemoTxTask(void *pArg);
+static void CAN_DemoStatusTask(void *pArg);
 
 static uint64_t CAN_DemoLoadFrame
 (
@@ -332,10 +345,10 @@ static uint8 CAN_DemoHandleTrafficLight
                                    SAL_OPT_BLOCKING );
     }
 
-    mcu_printf( "[MANEUVER RX] prev=%u new=%u data7=0x%02X\n",
-                ( unsigned int )ucPreviousManeuver,
-                ( unsigned int )ucNewManeuver,
-                ( unsigned int )( ullFrame & 0xFFULL ) );
+    mcu_printf( "[MANEUVER RX] prev=%d new=%d data=0x%02X\n",
+            ( sint32 )ucPreviousManeuver,
+            ( sint32 )ucNewManeuver,
+            ( sint32 )( ullFrame & 0xFFULL ) );
 
     if( gCanDemoLogLockCreated == TRUE )
     {
@@ -429,10 +442,33 @@ static void CAN_DemoCallbackTxEvent
     CANTxInterruptType_t                uiIntType
 )
 {
+    TickType_t xNow;
+    TickType_t xGap;
+
     if( ( ucCh == CAN_DEMO_TX_CHANNEL ) &&
         ( uiIntType == CAN_TX_INT_TYPE_TRANSMIT_COMPLETED ) )
     {
         gCanDemoTxCompleteCount++;
+        xNow = xTaskGetTickCountFromISR();
+
+        if( gCanDemoTxDoneTickValid != FALSE )
+        {
+            xGap = xNow - gCanDemoTxDonePreviousTick;
+            if( ( uint32 )xGap > gCanDemoTxDoneMaxGapMs )
+            {
+                gCanDemoTxDoneMaxGapMs = ( uint32 )xGap;
+            }
+            if( xGap > pdMS_TO_TICKS( CAN_DEMO_TX_GAP_WARN_MS ) )
+            {
+                gCanDemoTxDoneOver300Count++;
+            }
+        }
+        else
+        {
+            gCanDemoTxDoneTickValid = TRUE;
+        }
+
+        gCanDemoTxDonePreviousTick = xNow;
     }
 }
 
@@ -597,13 +633,19 @@ void CAN_DemoTest
     ( void )ucArgc;
     ( void )pArgv;
 
-    mcu_printf( "CAN CH%d TX:req=%d done=%d err=%d "
+    mcu_printf( "[CAN STATUS] CH%d TX:req=%d done=%d err=%d lastTxErr=%d "
+                "gapMs:taskMax=%d taskOver300=%d doneMax=%d doneOver300=%d "
                 "RX:callback=%d task=%d drop=%d invalid=%d unknown=%d "
                 "lastErr=%d PSR=0x%08X\n",
                 CAN_DEMO_TX_CHANNEL,
                 ( unsigned long )gCanDemoTxRequestCount,
                 ( unsigned long )gCanDemoTxCompleteCount,
                 ( unsigned long )gCanDemoTxErrorCount,
+                ( unsigned long )gCanDemoTxLastError,
+                ( unsigned long )gCanDemoTxTaskMaxGapMs,
+                ( unsigned long )gCanDemoTxTaskOver300Count,
+                ( unsigned long )gCanDemoTxDoneMaxGapMs,
+                ( unsigned long )gCanDemoTxDoneOver300Count,
                 ( unsigned long )gCanDemoRxCallbackCount[CAN_DEMO_TX_CHANNEL],
                 ( unsigned long )gCanDemoRxCount[CAN_DEMO_TX_CHANNEL],
                 ( unsigned long )gCanDemoRxDropCount[CAN_DEMO_TX_CHANNEL],
@@ -658,7 +700,7 @@ void CAN_DemoCreateApp
                             ( SALTaskFunc )&CAN_DemoRxTask,
                             &uiCanDemoRxTaskStk[0],
                             CAN_DEMO_TASK_STK_SIZE,
-                            APP_PRIO_NORMAL,   /* Normal: CAN 파싱(V2V/신호등 수신) - 우선순위 설계 제안 */
+                            APP_PRIO_CAN_RX,   /* High: CAN 수신 프레임 배출 및 파싱 */
                             NULL_PTR );
 
     ( void )SAL_TaskCreate( &uiCanDemoTxTaskID,
@@ -666,7 +708,15 @@ void CAN_DemoCreateApp
                             ( SALTaskFunc )&CAN_DemoTxTask,
                             &uiCanDemoTxTaskStk[0],
                             CAN_DEMO_TX_TASK_STK_SIZE,
-                            APP_PRIO_NORMAL,   /* Normal: CAN 송신(50ms) - 우선순위 설계 제안 */
+                            APP_PRIO_CAN_TX,   /* Highest: Ego 상태 20ms 주기 송신 */
+                            NULL_PTR );
+
+    ( void )SAL_TaskCreate( &gCanDemoStatusTaskID,
+                            ( const uint8 * )"CAN Status Task",
+                            ( SALTaskFunc )&CAN_DemoStatusTask,
+                            &gCanDemoStatusTaskStk[0],
+                            CAN_DEMO_TX_TASK_STK_SIZE,
+                            APP_PRIO_DECISION_DISP,
                             NULL_PTR );
 }
 
@@ -679,6 +729,11 @@ static void CAN_DemoTxTask
     CANMessage_t sTxMsg;
     CANErrorType_t eResult;
     uint8 ucTxBufferIndex;
+    TickType_t xLastWakeTime;
+    const TickType_t xTxPeriodTicks = pdMS_TO_TICKS( CAN_DEMO_TX_PERIOD_MS );
+    TickType_t xPreviousRunTime;
+    TickType_t xNow;
+    TickType_t xGap;
 // #if ( CAN_DEMO_FRAME_LOG_ENABLE == 1U )
 //     uint8 ucDataIndex;
 // #endif
@@ -695,8 +750,23 @@ static void CAN_DemoTxTask
     sTxMsg.mEventFIFOControl = FALSE;
     sTxMsg.mDataLength = CAN_DEMO_FRAME_SIZE;
 
+    xPreviousRunTime = xTaskGetTickCount();
+    xLastWakeTime = xPreviousRunTime;
     while( 1 )
     {
+        xNow = xTaskGetTickCount();
+        xGap = xNow - xPreviousRunTime;
+        xPreviousRunTime = xNow;
+
+        if( ( uint32 )xGap > gCanDemoTxTaskMaxGapMs )
+        {
+            gCanDemoTxTaskMaxGapMs = ( uint32 )xGap;
+        }
+        if( xGap > pdMS_TO_TICKS( CAN_DEMO_TX_GAP_WARN_MS ) )
+        {
+            gCanDemoTxTaskOver300Count++;
+        }
+
         if( ( gCanDemoTxEnabled == TRUE ) && ( gCanDemoInitResult == 0 ) )
         {
             ( void )SAL_CoreCriticalEnter();
@@ -745,10 +815,42 @@ static void CAN_DemoTxTask
             else
             {
                 gCanDemoTxErrorCount++;
+                gCanDemoTxLastError = ( uint32 )eResult;
             }
         }
 
-        ( void )SAL_TaskSleep( CAN_DEMO_TX_PERIOD_MS );
+        /*
+         * Keep the 20 ms phase based on an absolute wake-up time so task
+         * execution time does not accumulate into the next TX period.
+         */
+        vTaskDelayUntil( &xLastWakeTime, xTxPeriodTicks );
+    }
+}
+
+static void CAN_DemoStatusTask
+(
+    void *                              pArg
+)
+{
+    ( void )pArg;
+
+    while( 1 )
+    {
+        ( void )SAL_TaskSleep( CAN_DEMO_STATUS_PERIOD_MS );
+
+        if( gCanDemoLogLockCreated == TRUE )
+        {
+            ( void )SAL_SemaphoreWait( gCanDemoLogLock,
+                                       0UL,
+                                       SAL_OPT_BLOCKING );
+        }
+
+        CAN_DemoTest( 0U, NULL_PTR );
+
+        if( gCanDemoLogLockCreated == TRUE )
+        {
+            ( void )SAL_SemaphoreRelease( gCanDemoLogLock );
+        }
     }
 }
 
