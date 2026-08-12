@@ -59,7 +59,7 @@ void ST7735S_FillRect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint16_t color
 void Dashboard_DrawStatic(TurnDirection dir, uint8_t warnMask, SignalColor sig, uint8_t countdown, uint8_t pedFlag);
 void Dashboard_DrawSignalDots(SignalColor active);
 void Dashboard_UpdateCountdown(uint8_t sec);
-void Dashboard_DrawDirection(TurnDirection dir);
+void Dashboard_DrawDirection(TurnDirection dir, uint8_t dataStatus);
 void Dashboard_DrawWarnings(TurnDirection dir, uint8_t mask, uint8_t pedFlag);
 
 // 디버깅용: SPI 전송 성공/실패 누적 통계를 UART로 출력

@@ -268,7 +268,7 @@ static void DicisionDisplayTask(void *pArg)
 
             Display_LockLcd();
 
-            Dashboard_DrawDirection(direction);
+            Dashboard_DrawDirection(direction, decision.dataStatus);
             Dashboard_DrawWarnings(
                 direction,
                 warningMask,

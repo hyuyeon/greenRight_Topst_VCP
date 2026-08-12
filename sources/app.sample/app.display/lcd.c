@@ -453,6 +453,7 @@ static const FontGlyph font_table[] = {
     {'S', {0x46,0x49,0x49,0x49,0x31}},
     {'T', {0x01,0x01,0x7F,0x01,0x01}},
     {'U', {0x3F,0x40,0x40,0x40,0x3F}},
+    {'Y', {0x03,0x04,0x78,0x04,0x03}},
 };
 #define FONT_TABLE_LEN (sizeof(font_table) / sizeof(font_table[0]))
 
@@ -618,7 +619,7 @@ void Dashboard_UpdateCountdown(uint8_t sec)
 
 /* 상단 바 오른쪽의 주행상태 라벨("RIGHT TURN"/"LEFT TURN"/"STRAIGHT")과
  * 좌측 화살표 아이콘을 dir 하나로 같이 결정해서 그림. */
-void Dashboard_DrawDirection(TurnDirection dir)
+void Dashboard_DrawDirection(TurnDirection dir, uint8_t dataStatus)
 {
     const char *label;
 
@@ -650,6 +651,20 @@ void Dashboard_DrawDirection(TurnDirection dir)
     }
 
     ST7735S_DrawString(90, 10, label, COLOR_TEXT, 1U);
+
+     /*
+     * TIME_SYNC_ERROR / STALE은 turnJudgeTask에서 상호 배타적으로만
+     * 세팅되므로 둘 중 하나만 표시하면 된다. 둘 다 없으면(OK) 위의
+     * FillRect가 이전 문구를 이미 지웠으므로 추가 처리 불필요.
+     */
+    if ((dataStatus & DECISION_DATA_STATUS_TIME_SYNC_ERROR) != 0U)
+    {
+        ST7735S_DrawString(6, 112, "NOT SYNC", COLOR_DARKGRAY, 1U);
+    }
+    else if ((dataStatus & DECISION_DATA_STATUS_STALE) != 0U)
+    {
+        ST7735S_DrawString(15, 112, "STALE", COLOR_DARKGRAY, 1U);
+    }
 }
 
 /* 우측 경고 한 항목의 표시 내용 (사이드바 색, 아이콘, 라벨/상태 문구, 상태 색) */
