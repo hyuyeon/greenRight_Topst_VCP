@@ -77,3 +77,13 @@ void TemporalQos_CompensateLatency(
     compensatedCandi->x = (uint16_t)(predictedX + 0.5);
     compensatedCandi->y = (uint16_t)(predictedY + 0.5);
 }
+
+void TemporalQos_PrintSrcAndCurrentTime(uint16_t logId, )
+{
+    // [T1] vehicle=1 src_ts12=1234 current=07:30:15.123
+
+    return (uint16_t)(
+        (currentTimestamp - sourceTimestamp) &
+        TEMPORAL_QOS_TIMESTAMP_MASK
+    );
+}

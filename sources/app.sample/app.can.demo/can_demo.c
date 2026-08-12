@@ -319,6 +319,30 @@ static uint8 CAN_DemoHandleTrafficLight
 
     ( void )SAL_CoreCriticalExit();
 
+#if ( 1U )
+    /*
+     * Linux가 보낸 msgID 0110의 maneuver가 실제로 토글되는지
+     * 확인하기 위한 임시 디버그 로그.
+     * UART 출력은 공유 상태 갱신 critical section 밖에서 수행한다.
+     */
+    if( gCanDemoLogLockCreated == TRUE )
+    {
+        ( void )SAL_SemaphoreWait( gCanDemoLogLock,
+                                   0UL,
+                                   SAL_OPT_BLOCKING );
+    }
+
+    mcu_printf( "[MANEUVER RX] prev=%u new=%u data7=0x%02X\n",
+                ( unsigned int )ucPreviousManeuver,
+                ( unsigned int )ucNewManeuver,
+                ( unsigned int )( ullFrame & 0xFFULL ) );
+
+    if( gCanDemoLogLockCreated == TRUE )
+    {
+        ( void )SAL_SemaphoreRelease( gCanDemoLogLock );
+    }
+#endif
+
     if( ucDisplayChanged == TRUE )
     {
         Display_TrafficLightNotify();

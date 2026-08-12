@@ -39,8 +39,13 @@
 #define CAN_DEMO_TX_ID                  (0x100UL)
 #define CAN_DEMO_TX_PERIOD_MS           (20UL)  /* Ego status (Msg ID 0000) TX period. */
 #define CAN_DEMO_STATUS_PERIOD_MS       (1000UL)
+<<<<<<< HEAD
 #define CAN_DEMO_FRAME_LOG_ENABLE       (1U)
 #define CAN_DEMO_RX_EVENT_MASK          CAN_DEMO_RX_EVENT(CAN_DEMO_RX_CHANNEL)
+=======
+#define CAN_DEMO_FRAME_LOG_ENABLE       (0U)
+#define CAN_DEMO_RX_EVENT_MASK          (( 1UL << CAN_CONTROLLER_NUMBER ) - 1UL)
+>>>>>>> be496f5 (log modify)
 #define CAN_DEMO_RX_EVENT( ch )         (1UL << ( ch ))
 #define CAN_DEMO_RX_CHANNEL      (0U)
 #define CAN_DEMO_NUCLEO_RX_ID           (0x100UL)
