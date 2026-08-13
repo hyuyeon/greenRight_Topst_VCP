@@ -3,6 +3,10 @@
 #include <math.h>
 #include <stddef.h>
 
+#include <app_cfg.h>
+#include <debug.h>
+#include "time_sync.h"
+
 #define TEMPORAL_QOS_PI  (3.14159265358979323846)
 
 //현재 동기화 시각의 하위 12 bit랑 sourceTimestamp(원래 12 bit)를 비교해서 age를 구함
@@ -76,4 +80,17 @@ void TemporalQos_CompensateLatency(
 
     compensatedCandi->x = (uint16_t)(predictedX + 0.5);
     compensatedCandi->y = (uint16_t)(predictedY + 0.5);
+}
+
+
+void TemporalQos_TraceStage(
+    uint16_t logId,
+    uint16_t srcTimestamp12)
+{
+    mcu_printf(
+        "[T%d] src_ts12=%d ",
+        logId,
+        srcTimestamp12);
+
+    TimeSync_PrintCurrentTime();
 }

@@ -917,7 +917,6 @@ static void TurnJudgeTask(void *pArg)
             CandidateVehicle candidateForDecision = candidateSnapshot;
             uint64_t currentTimeMs;
             uint16_t latencyMs = 0U;
-            uint8_t hasLatencyMeasurement = 0U;
 
             //시간 동기화가 되고 있는지 확인
             if (TimeSync_GetCurrentMs(&currentTimeMs) == FALSE)
@@ -942,11 +941,24 @@ static void TurnJudgeTask(void *pArg)
                     TEMPORAL_QOS_TIMESTAMP_MASK
                 );
 
+#if (TEMPORAL_QOS_TRACE_STAGE_ENABLE == 1U)
+                TemporalQos_TraceStage(
+                    5U,
+                    sourceTimestamp
+                );
+#endif
+
                 latencyMs = TemporalQos_CalculateAgeMs(
                     currentTimestamp,
                     sourceTimestamp
                 );
-                hasLatencyMeasurement = 1U;
+
+#if (TEMPORAL_QOS_TRACE_STAGE_ENABLE == 1U)
+                mcu_printf(
+                    "[QoS] End-to-End latency: %u ms\r\n",
+                    (unsigned int)latencyMs
+                );
+#endif
 
                 //freshness 체크
                 if (latencyMs <= TEMPORAL_QOS_FRESHNESS_LIMIT_MS)
@@ -1018,14 +1030,6 @@ static void TurnJudgeTask(void *pArg)
                 }
             }
 
-            /* UART 출력으로 판단 경로를 지연시키지 않도록 판단 후 출력한다. */
-            if (hasLatencyMeasurement != 0U)
-            {
-                mcu_printf(
-                    "[QoS] End-to-End latency: %u ms\r\n",
-                    (unsigned int)latencyMs
-                );
-            }
         }
 
         if (shouldPost == 0U)
