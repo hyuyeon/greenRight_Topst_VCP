@@ -152,6 +152,7 @@ void TimeSync_PrintCurrentTime
     uint32 uiHour;
     uint32 uiMinute;
     uint32 uiSecond;
+    uint32 uiMillisecond;
 
     if( TimeSync_IsValid() == FALSE )
     {
@@ -185,11 +186,16 @@ void TimeSync_PrintCurrentTime
         ( uint32 )
         ( ullTimeOfDayMs / 1000ULL );
 
+    uiMillisecond =
+        ( uint32 )
+        ( ullTimeOfDayMs % 1000ULL );
+
     mcu_printf(
-        "[TIME SYNC] %02d:%02d:%02d UTC\n",
+        "[TIME SYNC] %02d:%02d:%02d.%03d UTC\n",
         uiHour,
         uiMinute,
-        uiSecond
+        uiSecond,
+        uiMillisecond
     );
 }
 

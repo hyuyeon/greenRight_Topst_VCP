@@ -21,6 +21,7 @@
 #include "turnJudgeTask.h"
 #include "app_priority_cfg.h"
 #include "time_sync.h"
+#include "temporal_qos.h"
 
 #define CAN_DEMO_FRAME_SIZE                 (8U)
 #define CAN_DEMO_MSG_ID_SHIFT               (60U)
@@ -66,12 +67,16 @@ static volatile uint32 gCanDemoLastRxId;
 static volatile uint32 gCanDemoLastTxId;
 
 static CANMessage_t gCanDemoRxBatch[CAN_CONTROLLER_NUMBER][CAN_DEMO_RX_BATCH_MAX];
+#if (CAN_DEMO_STATUS_LOG_ENABLE == 1U)
 static uint32 gCanDemoStatusTaskID;
 static uint32 gCanDemoStatusTaskStk[CAN_DEMO_TX_TASK_STK_SIZE];
+#endif
 
 static void CAN_DemoRxTask(void *pArg);
 static void CAN_DemoTxTask(void *pArg);
+#if (CAN_DEMO_STATUS_LOG_ENABLE == 1U)
 static void CAN_DemoStatusTask(void *pArg);
+#endif
 
 static uint64_t CAN_DemoLoadFrame
 (
@@ -331,30 +336,6 @@ static uint8 CAN_DemoHandleTrafficLight
     maneuver = ucNewManeuver;
 
     ( void )SAL_CoreCriticalExit();
-
-#if ( 1U )
-    /*
-     * Linux가 보낸 msgID 0110의 maneuver가 실제로 토글되는지
-     * 확인하기 위한 임시 디버그 로그.
-     * UART 출력은 공유 상태 갱신 critical section 밖에서 수행한다.
-     */
-    if( gCanDemoLogLockCreated == TRUE )
-    {
-        ( void )SAL_SemaphoreWait( gCanDemoLogLock,
-                                   0UL,
-                                   SAL_OPT_BLOCKING );
-    }
-
-    mcu_printf( "[MANEUVER RX] prev=%d new=%d data=0x%02X\n",
-            ( sint32 )ucPreviousManeuver,
-            ( sint32 )ucNewManeuver,
-            ( sint32 )( ullFrame & 0xFFULL ) );
-
-    if( gCanDemoLogLockCreated == TRUE )
-    {
-        ( void )SAL_SemaphoreRelease( gCanDemoLogLock );
-    }
-#endif
 
     if( ucDisplayChanged == TRUE )
     {
@@ -711,6 +692,7 @@ void CAN_DemoCreateApp
                             APP_PRIO_CAN_TX,   /* Highest: Ego 상태 20ms 주기 송신 */
                             NULL_PTR );
 
+#if (CAN_DEMO_STATUS_LOG_ENABLE == 1U)
     ( void )SAL_TaskCreate( &gCanDemoStatusTaskID,
                             ( const uint8 * )"CAN Status Task",
                             ( SALTaskFunc )&CAN_DemoStatusTask,
@@ -718,6 +700,7 @@ void CAN_DemoCreateApp
                             CAN_DEMO_TX_TASK_STK_SIZE,
                             APP_PRIO_DECISION_DISP,
                             NULL_PTR );
+#endif
 }
 
 static void CAN_DemoTxTask
@@ -783,6 +766,14 @@ static void CAN_DemoTxTask
                 gCanDemoTxRequestCount++;
                 gCanDemoLastTxId = sTxMsg.mId;
 
+#if (TEMPORAL_QOS_TRACE_STAGE_ENABLE == 1U)
+                TemporalQos_TraceStage(
+                    2U,
+                    (uint16_t)(sEgoSnapshot.timestamp &
+                               TEMPORAL_QOS_TIMESTAMP_MASK)
+                );
+#endif
+
 #if ( CAN_DEMO_FRAME_LOG_ENABLE == 1U )
                 if( gCanDemoLogLockCreated == TRUE )
                 {
@@ -827,6 +818,7 @@ static void CAN_DemoTxTask
     }
 }
 
+#if (CAN_DEMO_STATUS_LOG_ENABLE == 1U)
 static void CAN_DemoStatusTask
 (
     void *                              pArg
@@ -853,6 +845,7 @@ static void CAN_DemoStatusTask
         }
     }
 }
+#endif
 
 static void CAN_DemoRxTask
 (

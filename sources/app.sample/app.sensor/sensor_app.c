@@ -27,6 +27,7 @@
 #include "position.h"
 #include "common.h"
 #include "app_priority_cfg.h"
+#include "temporal_qos.h"
 
 #include <sal_internal.h>
 #include <app_cfg.h>
@@ -36,6 +37,7 @@
 
 #define SENSOR_UPDATE_PERIOD_MS   20U
 #define LED_BLINK_PERIOD_MS      500U
+#define SENSOR_POSITION_LOG_ENABLE  (1U)
 
 // #define EGO_TIMESTAMP_UNIT_MS     10U
 // #define EGO_TIMESTAMP_MASK        0x0FFFU
@@ -222,6 +224,12 @@ static void Sensor_UpdateEgo(
     new_ego.timestamp =
         Sensor_GetTimestamp();
 
+#if (TEMPORAL_QOS_TRACE_STAGE_ENABLE == 1U)
+    TemporalQos_TraceStage(
+        1U,
+        new_ego.timestamp);
+#endif
+
     /*
      * 변환과 시간 조회가 모두 끝난 뒤
      * 공유 전역변수 쓰기만 짧게 보호한다.
@@ -248,7 +256,9 @@ static void Sensor_Task(void *pArg)
     float pitch = 0.0f;
     float speed_mps = 0.0f;
 
+#if (SENSOR_POSITION_LOG_ENABLE == 1U)
     uint32_t speed_log_elapsed_ms = 0U;
+#endif
 
     int32_t raw_heading_x100 = 0;
     int32_t filtered_heading_x100 = 0;
@@ -666,6 +676,7 @@ static void Sensor_Task(void *pArg)
             speed_mps,
             current_heading_x100);
 
+#if (SENSOR_POSITION_LOG_ENABLE == 1U)
         /*
          * 속도 및 누적 위치를 1초마다 출력
          */
@@ -703,9 +714,8 @@ static void Sensor_Task(void *pArg)
                 (int)Position_GetXcm(),
                 (int)Position_GetYcm(),
                 (int)Position_GetTotalDistanceCm());
-                //Time Sync Debug
-                TimeSync_PrintCurrentTime();
         }
+#endif
 
         SAL_TaskSleep(
             SENSOR_UPDATE_PERIOD_MS);
