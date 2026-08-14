@@ -820,6 +820,9 @@ void Dashboard_DrawStatic(TurnDirection dir, uint8_t warnMask,
     Dashboard_DrawCountdown(countdown);
     ST7735S_DrawString(58, 20, "SEC", 0x7BEF, 1U);
 
-    Dashboard_DrawDirection(dir);
+    Dashboard_DrawDirection(
+        dir,
+        DECISION_DATA_STATUS_OK
+    );
     Dashboard_DrawWarnings(dir, warnMask, pedestrianFlag);
 }
