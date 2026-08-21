@@ -953,10 +953,10 @@ static void TurnJudgeTask(void *pArg)
                     sourceTimestamp
                 );
 
-#if (TEMPORAL_QOS_TRACE_STAGE_ENABLE == 1U)
+#if (TEMPORAL_QOS_END_TO_END_LOG_ENABLE == 1U)
                 mcu_printf(
-                    "[QoS] End-to-End latency: %u ms\r\n",
-                    (unsigned int)latencyMs
+                    "[QoS] End-to-End latency: %d ms\r\n",
+                    (sint32)latencyMs
                 );
 #endif
 

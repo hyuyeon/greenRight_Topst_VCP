@@ -11,7 +11,8 @@
 #define SPEED_STOP_THRESHOLD_MPS  0.02f
 #define POSITION_START_X_CM       267
 #define POSITION_START_Y_CM       10
-
+//(267, 10)
+//80 227
 static float total_distance_m = 0.0f;
 static float pos_x_m = 0.0f;
 static float pos_y_m = 0.0f;
