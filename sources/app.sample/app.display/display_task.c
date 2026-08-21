@@ -252,9 +252,22 @@ static void DicisionDisplayTask(void *pArg)
 {
     Dicision decision;
     TurnDirection direction;
+    TurnDirection previousDirection;
     uint8_t warningMask;
+    uint8_t previousDataStatus;
+    uint8_t previousWarningMask;
+    uint8_t previousPedestrianFlag;
+    uint8_t hasPreviousRender;
+    uint8_t directionChanged;
+    uint8_t warningsChanged;
 
     (void)pArg;
+
+    previousDirection = DIR_ERROR;
+    previousDataStatus = DECISION_DATA_STATUS_OK;
+    previousWarningMask = WARN_NONE;
+    previousPedestrianFlag = 0U;
+    hasPreviousRender = 0U;
 
     for (;;)
     {
@@ -266,16 +279,47 @@ static void DicisionDisplayTask(void *pArg)
             direction = Dicision_ToTurnDirection(&decision);
             warningMask = Dicision_ToWarningMask(&decision);
 
-            Display_LockLcd();
+            directionChanged =
+                ((hasPreviousRender == 0U) ||
+                 (direction != previousDirection) ||
+                 (decision.dataStatus != previousDataStatus)) ? 1U : 0U;
 
-            Dashboard_DrawDirection(direction, decision.dataStatus);
-            Dashboard_DrawWarnings(
-                direction,
-                warningMask,
-                decision.pedestrianFlag
-            );
+            warningsChanged =
+                ((hasPreviousRender == 0U) ||
+                 (direction != previousDirection) ||
+                 (warningMask != previousWarningMask) ||
+                 (decision.pedestrianFlag != previousPedestrianFlag)) ? 1U : 0U;
 
-            Display_UnlockLcd();
+            if ((directionChanged != 0U) ||
+                (warningsChanged != 0U))
+            {
+                Display_LockLcd();
+
+                if (directionChanged != 0U)
+                {
+                    Dashboard_DrawDirection(
+                        direction,
+                        decision.dataStatus
+                    );
+                }
+
+                if (warningsChanged != 0U)
+                {
+                    Dashboard_DrawWarnings(
+                        direction,
+                        warningMask,
+                        decision.pedestrianFlag
+                    );
+                }
+
+                Display_UnlockLcd();
+            }
+
+            previousDirection = direction;
+            previousDataStatus = decision.dataStatus;
+            previousWarningMask = warningMask;
+            previousPedestrianFlag = decision.pedestrianFlag;
+            hasPreviousRender = 1U;
         }
     }
 }
